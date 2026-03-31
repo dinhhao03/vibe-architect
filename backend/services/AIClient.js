@@ -36,10 +36,14 @@ class AIClient {
                     };
                 } else if (systemInstruction.includes("Developer")) {
                     return {
-                        readme: "# Server API Setup\n\n1. `npm install`\n2. `npm start`\n",
-                        controllerCode: "const AppService = require('../services/AppService');\n\nclass AppController {\n  static async index(req, res) {\n    res.json({ message: 'Mock API Loaded' });\n  }\n}\nmodule.exports = AppController;",
-                        serviceCode: "class AppService {\n  static handleLogic() { return true; }\n}\nmodule.exports = AppService;",
-                        routeCode: "const express = require('express');\nconst AppController = require('../controllers/AppController');\nconst router = express.Router();\n\nrouter.get('/dashboard', AppController.index);\n\nmodule.exports = router;"
+                        readme: "# Server API Setup Mock\n\n1. `npm install`\n2. `npm start`\n",
+                        dependencies: ["express"],
+                        dbCode: "module.exports = {};",
+                        appCode: "const express = require('express');\nconst AppRoute = require('./routes/AppRoute');\nconst app = express();\napp.use('/api', AppRoute);\nmodule.exports = app;",
+                        serverCode: "const app = require('./app');\napp.listen(3000, () => console.log('Mock Server Running on 3000'));",
+                        controllers: [{ filename: "MockController.js", code: "class MockController {\n  static async index(req, res) {\n    res.json({ message: 'Mock API Loaded' });\n  }\n}\nmodule.exports = MockController;" }],
+                        services: [{ filename: "MockService.js", code: "class MockService {\n  static handleLogic() { return true; }\n}\nmodule.exports = MockService;" }],
+                        routes: [{ filename: "AppRoute.js", code: "const express = require('express');\nconst MockController = require('../controllers/MockController');\nconst router = express.Router();\n\nrouter.get('/dashboard', MockController.index);\n\nmodule.exports = router;" }]
                     };
                 }
             }

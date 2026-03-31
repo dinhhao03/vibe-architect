@@ -8,15 +8,15 @@ Vibe-Architect là một **Hệ sinh thái sinh cấu trúc dự án (Scaffoldin
 
 ## 🛠️ Tính Năng Chuyên Sâu (Theo chuẩn Yêu cầu V2.0)
 
-1. **3-Agent Orchestration Pipeline:**
-   - **Agent 1 (Bussiness Analyst):** Phân tích ngữ nghĩa nội dung prompt thành `User Stories` & `Acceptance Criteria`.
-   - **Agent 2 (Data Architect):** Biểu đồ hóa Dữ liệu (ERD) và ánh xạ sang dạng SQL DDL thực dụng (3NF, PK/FK).
-   - **Agent 3 (Backend Developer):** Từ SQL, đẻ ra toàn bộ luồng File Tree Backend MVC bao gồm: `MainController`, `ApiRoute`, `BaseRepository`, và khởi tạo `package.json`.
+1. **3-Agent Orchestration Pipeline (Context-Locked):**
+   - **Agent 1 (Bussiness Analyst):** Sinh ra `User Stories` kèm Tên Dự án.
+   - **Agent 2 (Data Architect):** Thừa kế Tên dự án. Lập `SQL DDL Schema` & `ERD Mermaid`.
+   - **Agent 3 (Backend Developer):** Đọc chuỗi SQL gốc, xuất ra hệ sinh thái thư mục Động: `src/app.js`, `src/server.js`, `src/db.js`, và các mảng `controllers/`, `services/`, `routes/` tương ứng 100% với cấu trúc SQL.
 
 2. **UI/UX Split Base & Multi-Tab Preview:**
    - Giao diện Landing Page chuyên nghiệp, tự rẽ nhánh sang môi trường Workspace (Split-pane layout).
    - Sidebar Input tích hợp hệ thống **Preset Template** nạp sẵn prompt.
-   - Giao diện **Preview 5 Tabs**: Liên kết Markdown / Mermaid Runtime.
+   - Giao diện **Preview 5 Tabs**: Liên kết Markdown / Mermaid Runtime / Dynamic Code String.
 
 3. **Checkpoints & Refine Loop (Local):**
    - Vòng lặp `Review -> Regenerate -> Apply` hoạt động hoàn toàn ở Client Side qua `localStorage`. Hệ thống tự nhúng lịch sử cũ vào bối cảnh mới khi User gọi hàm "Refine".
@@ -50,10 +50,11 @@ Vibe-Architect là một **Hệ sinh thái sinh cấu trúc dự án (Scaffoldin
 | STT | Testing Case | Expected Status | Actual Results |
 |:---:|:---|:---:|:---|
 | 1 | *Generative API Stream:* Chạy tiến trình trả SSE event từ 3 Agent liên tiếp. | ✅ Passed | Frontend Logger render đúng tiến độ mượt mà. |
-| 2 | *Agent Context Share:* Pass dữ liệu từ Agent 1 sang Agent 2 & Agent 3. | ✅ Passed | SQL có tương tác chéo tới các module trong Story Requirement. |
+| 2 | *Agent Context Share:* Pass dữ liệu từ Agent 1 sang Agent 2 & Agent 3. | ✅ Passed | Entity khai báo trong SQL phản chiếu chính xác tên vào Controllers và Route Paths. |
 | 3 | *Syntax Validation:* Kiểm tra lỗi sai Cú pháp ERD hoặc SQL của AI. | ✅ Passed | Regex validator cản lại nếu thiếu `CREATE TABLE` và chèn Mock Schema. |
-| 4 | *Export Zip Tree:* ZIP Archiver bung và nhét thư mục `src/`, file `README`, `package.json`. | ✅ Passed | Đường dẫn sử dụng `/downloads/` an toàn 100% path.join Root. |
+| 4 | *Export Zip Tree:* ZIP Archiver bung mảng động do AI trả về thành cây thư mục Model. | ✅ Passed | Tự động sinh `src/db.js`, `package.json` tự merge Dependencies. |
 | 5 | *UI Local History:* Bấm back/forward qua History checkpont của web session. | ✅ Passed | DOM và Mermaid re-rendered. Context cũ nạp vào Form Input thành công. |
+| 6 | *Validation Fault Tolerance:* Ép hệ thống mô phỏng AI bị lỗi format JSON tại giữa Pipeline. | ✅ Passed | Hệ thống chặn lỗi, thay thế Module bị nát bằng Static Fallback Component, Pipeline tiếp tục mượt đến đuôi. |
 
 ---
 **Course:** Software Engineering Midterm | **Type:** Local Multi-agent Architecture MVC.

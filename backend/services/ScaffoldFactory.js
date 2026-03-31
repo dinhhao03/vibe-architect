@@ -6,10 +6,8 @@ class ScaffoldFactory {
     static async createProjectZip(projectData) {
         const timestamp = Date.now();
         const outputFilename = `vibe-architect-${timestamp}.zip`;
-        // Root path đảm bảo an toàn cho mọi HDH vì lấy từ thư mục chạy lệnh
         const outputPath = path.resolve(process.cwd(), 'downloads', outputFilename);
         
-        // Đảm bảo thư mục downloads tồn tại
         if (!fs.existsSync(path.dirname(outputPath))) {
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
         }
@@ -17,18 +15,11 @@ class ScaffoldFactory {
         return new Promise((resolve, reject) => {
             const output = fs.createWriteStream(outputPath);
             const archive = archiver('zip', {
-                zlib: { level: 9 } // Độ nén max
+                zlib: { level: 9 }
             });
 
-            output.on('close', () => {
-                resolve(outputPath);
-            });
-
-            archive.on('error', (err) => {
-                reject(err);
-            });
-
-            // Gắn pipe luồng đệm vào luồng file
+            output.on('close', () => resolve(outputPath));
+            archive.on('error', (err) => reject(err));
             archive.pipe(output);
 
             const srsJSON = projectData.srs;
@@ -46,35 +37,52 @@ class ScaffoldFactory {
             
             // 2. Data động từ Agent 3 (Backend Developer)
             const backend = projectData.backend;
-            archive.append(backend.readme || "# Vibe-Architect Dynamic App\nĐược gen bởi AI.", { name: 'README.md' });
-            
-            // Xóa markup rác do lỗi JSON parse để lại nếu AI trả lỗi nhẹ
+            archive.append(backend.readme || "# Vibe-Architect Generated App", { name: 'README.md' });
+            archive.append(`node_modules/\n.env\n*.zip\n/downloads/`, { name: '.gitignore' });
+
             const cleanCode = (code) => {
                 if(!code) return "// Empty block";
                 return code.replace(/```javascript/g, '').replace(/```/g, '').trim();
             }
 
-            // 3. Render khung MVC
             if (projectData.techStack.includes('Node.js')) {
-                // Ignore configs
-                archive.append(`node_modules/\n.env\n*.zip\n/downloads/`, { name: '.gitignore' });
+                // Core Files
+                archive.append(cleanCode(backend.dbCode), { name: 'src/db.js' });
+                archive.append(cleanCode(backend.appCode), { name: 'src/app.js' });
+                archive.append(cleanCode(backend.serverCode), { name: 'src/server.js' });
+
+                // Dynamic MVC Files Array
+                if (Array.isArray(backend.controllers)) {
+                    backend.controllers.forEach(c => {
+                        archive.append(cleanCode(c.code), { name: `src/controllers/${c.filename}` });
+                    });
+                }
+                if (Array.isArray(backend.services)) {
+                    backend.services.forEach(s => {
+                        archive.append(cleanCode(s.code), { name: `src/services/${s.filename}` });
+                    });
+                }
+                if (Array.isArray(backend.routes)) {
+                    backend.routes.forEach(r => {
+                        archive.append(cleanCode(r.code), { name: `src/routes/${r.filename}` });
+                    });
+                }
                 
-                // Static Base Pattern code
-                const repoCode = `class BaseRepository {\n  constructor(model) { this.model = model; }\n  async findAll() { return await this.model.findMany(); }\n  async findById(id) { return await this.model.findById(id); }\n}\nmodule.exports = BaseRepository;`;
-                archive.append(repoCode, { name: 'src/repositories/BaseRepository.js' });
-                
-                // Dynamic AI code
-                archive.append(cleanCode(backend.controllerCode), { name: 'src/controllers/AppController.js' });
-                archive.append(cleanCode(backend.routeCode), { name: 'src/routes/ApiRoute.js' });
-                archive.append(cleanCode(backend.serviceCode), { name: 'src/services/AppService.js' });
-                
-                // Bọc Entry Point (Express server)
-                const entryCode = `const express = require('express');\nconst apiRoute = require('./routes/ApiRoute');\n\nconst app = express();\napp.use(express.json());\napp.use('/api', apiRoute);\n\nconst PORT = process.env.PORT || 3000;\napp.listen(PORT, () => {\n  console.log('App is live on http://localhost:' + PORT);\n});`;
-                archive.append(entryCode, { name: 'src/server.js' });
-                
-                // Bọc NPM package
-                const packageJson = `{\n  "name": "ai-generated-backend",\n  "version": "1.0.0",\n  "main": "src/server.js",\n  "scripts": {\n    "start": "node src/server.js"\n  },\n  "dependencies": {\n    "express": "^4.18.2",\n    "dotenv": "^16.0.3"\n  }\n}`;
-                archive.append(packageJson, { name: 'package.json' });
+                // Npm package dependencies builder
+                let depObj = { "express": "^4.18.2", "dotenv": "^16.0.3" };
+                if(Array.isArray(backend.dependencies)) {
+                    backend.dependencies.forEach(d => {
+                        if(d && !depObj[d]) depObj[d] = "latest";
+                    });
+                }
+                const packageJson = {
+                    name: (srsJSON.projectName || "ai-generated-backend").toLowerCase().replace(/[^a-z0-9\-]/g, '-'),
+                    version: "1.0.0",
+                    main: "src/server.js",
+                    scripts: { start: "node src/server.js" },
+                    dependencies: depObj
+                };
+                archive.append(JSON.stringify(packageJson, null, 2), { name: 'package.json' });
             }
 
             archive.finalize();

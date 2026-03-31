@@ -26,6 +26,7 @@ router.get('/generate', async (req, res) => {
         const srsSchema = {
             type: "OBJECT",
             properties: {
+                projectName: { type: "STRING" },
                 projectOverview: { type: "STRING" },
                 userStories: {
                     type: "ARRAY",
@@ -43,7 +44,17 @@ router.get('/generate', async (req, res) => {
         };
 
         const srsPrompt = `Create a software requirements specification (SRS) for: ${userPrompt}. Focus on MVP features.`;
-        const srsData = await aiClient.generate(srsPrompt, "You are a Senior Business Analyst IT.", srsSchema);
+        let srsData;
+        try {
+            srsData = await aiClient.generate(srsPrompt, "You are a Senior Business Analyst IT.", srsSchema);
+        } catch (err) {
+            console.warn("[WARNING] Agent 1 (SRS) Failed:", err.message);
+            srsData = {
+                projectName: "Dự án Fallback MVP",
+                projectOverview: "Dự án được tạo bằng Fallback Framework. (Do Server AI quá tải không thể phân tích SRS lúc này).",
+                userStories: [{ id: "US-01", title: "Core MVP", story: "Hệ thống cung cấp các tĩnh năng Backend thiết yếu." }]
+            };
+        }
         sendEvent('srs_ready', srsData);
 
         // --- AGENT 2: DATA ARCHITECT ---
@@ -57,8 +68,14 @@ router.get('/generate', async (req, res) => {
             },
             required: ["erd", "sql"]
         };
-        const dbPrompt = `Based on these user stories: ${JSON.stringify(srsData.userStories)}, design the database. Output 'erd' using Mermaid erDiagram syntax, and 'sql' using PostgreSQL syntax in 3NF.`;
-        const dbData = await aiClient.generate(dbPrompt, "You are a Senior Database Architect.", dbSchema);
+        const dbPrompt = `Project Name: ${srsData.projectName}. Based on these user stories: ${JSON.stringify(srsData.userStories)}, design the database. Output 'erd' using Mermaid erDiagram syntax, and 'sql' using PostgreSQL syntax in 3NF.`;
+        let dbData;
+        try {
+            dbData = await aiClient.generate(dbPrompt, "You are a Senior Database Architect.", dbSchema);
+        } catch (err) {
+            console.warn("[WARNING] Agent 2 (DB) Failed:", err.message);
+            dbData = { sql: null, erd: null }; // Để nhường phần xử lý cho Validation Layer bên dưới
+        }
         
         // --- VALIDATION LAYER (ERD/SQL) ---
         sendEvent('progress', { message: 'Kiểm tra tính toàn vẹn Data (Validation Layer)...' });
@@ -75,21 +92,58 @@ router.get('/generate', async (req, res) => {
         const backendSchema = {
             type: "OBJECT",
             properties: {
-                readme: { type: "STRING", description: "A highly detailed README.md" },
-                controllerCode: { type: "STRING", description: "Express.js Controller Code for the main entities" },
-                serviceCode: { type: "STRING", description: "Service/Repository layer code" },
-                routeCode: { type: "STRING", description: "Express.js Router code mapping to controller" }
+                readme: { type: "STRING", description: "A detailed README.md covering how to start the app." },
+                dependencies: { type: "ARRAY", items: { type: "STRING" }, description: "List of npm packages like express, pg, cors, dotenv" },
+                dbCode: { type: "STRING", description: "Node.js database connection code (e.g. pg pool or mongoose)" },
+                appCode: { type: "STRING", description: "Express app setup (middleware, routes mount)" },
+                serverCode: { type: "STRING", description: "Server entry point (app.listen)" },
+                controllers: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: { filename: { type: "STRING" }, code: { type: "STRING" } }
+                    }
+                },
+                services: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: { filename: { type: "STRING" }, code: { type: "STRING" } }
+                    }
+                },
+                routes: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: { filename: { type: "STRING" }, code: { type: "STRING" } }
+                    }
+                }
             },
-            required: ["readme", "controllerCode", "serviceCode", "routeCode"]
+            required: ["readme", "dependencies", "dbCode", "appCode", "serverCode", "controllers", "services", "routes"]
         };
-        const backendPrompt = `Based on this SRS: ${JSON.stringify(srsData.projectOverview)} and this SQL schema: ${dbData.sql}, generate a detailed README.md, and Production-ready Node.js Express.js MVC code (controller, route, service) for the core entities. Code must be clean and not wrapped in markdown.`;
-        const backendData = await aiClient.generate(backendPrompt, "You are a Senior Backend Node.js Developer.", backendSchema);
+        const backendPrompt = `Project: ${srsData.projectName}. SRS: ${JSON.stringify(srsData.projectOverview)} SQL: ${dbData.sql}.
+Generate a PRO Node.js MVC backend. Create exactly src/db.js, src/app.js, src/server.js. Limit to the TOP 3 Core Database Entities (Tables) for the demo MVP. Generate code for controllers, services, and routes matching these tables. Output clean code without markdown backticks.`;
+        
+        let backendData;
+        try {
+            backendData = await aiClient.generate(backendPrompt, "You are a Senior Backend Node.js Developer.", backendSchema);
+        } catch (err) {
+            console.warn("[WARNING] Agent 3 (Backend) Failed:", err.message);
+            backendData = { appCode: null };
+        }
         
         // --- VALIDATION LAYER (BACKEND) ---
-        if(!backendData.controllerCode || !backendData.routeCode) {
-           backendData.controllerCode = "class FallbackController {} module.exports = FallbackController;";
-           backendData.routeCode = "const router = require('express').Router(); module.exports = router;";
-           backendData.serviceCode = "class FallbackService {} module.exports = FallbackService;";
+        if(!backendData.appCode || !backendData.controllers || backendData.controllers.length === 0) {
+           backendData = {
+               readme: "# Fallback Backend\nHệ thống AI quá tải, đây là mã giả lập tĩnh.",
+               dependencies: ["express", "dotenv", "cors"],
+               dbCode: "module.exports = {};",
+               appCode: "const express = require('express');\nconst app = express();\nmodule.exports = app;",
+               serverCode: "const app = require('./app');\nconst PORT = 3000;\napp.listen(PORT, () => console.log('Live Server'));",
+               controllers: [{ filename: "AppController.js", code: "class AppController {\n  static handle(req,res){ res.send('OK via Fallback Code!') }\n}\nmodule.exports = AppController;" }],
+               services: [{ filename: "AppService.js", code: "class AppService { static async process() { return true; } }\nmodule.exports = AppService;" }],
+               routes: [{ filename: "ApiRoute.js", code: "const router = require('express').Router();\nconst Fallback = require('../controllers/AppController');\nrouter.get('/', Fallback.handle);\nmodule.exports = router;" }]
+           };
         }
         sendEvent('backend_ready', backendData);
 

@@ -138,7 +138,8 @@ function startPipeline(isRefine) {
 
     eventSource.addEventListener('srs_ready', (e) => {
         const data = JSON.parse(e.data);
-        const md = `# Overview\n${data.projectOverview}\n\n## User Stories\n${data.userStories.map(u => `- **${u.id} - ${u.title}**: ${u.story}`).join('\n')}`;
+        const stories = data.userStories || [];
+        const md = `# Overview\n${data.projectOverview}\n\n## User Stories\n${stories.map(u => `- **${u.id} - ${u.title}**: ${u.story}`).join('\n')}`;
         currentSessionData.srs = md;
         document.getElementById('tab-srs').innerHTML = marked.parse(md);
     });
@@ -148,15 +149,27 @@ function startPipeline(isRefine) {
         currentSessionData.erd = data.erd;
         currentSessionData.sql = data.sql;
         renderMermaid();
-        document.getElementById('tab-sql').innerHTML = `<pre>${data.sql}</pre>`;
+        const safeSql = data.sql ? data.sql.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+        document.getElementById('tab-sql').innerHTML = safeSql;
     });
 
     eventSource.addEventListener('backend_ready', (e) => {
         const data = JSON.parse(e.data);
-        currentSessionData.code = `/* Controller */\n${data.controllerCode}\n\n/* Routes */\n${data.routeCode}\n\n/* Service */\n${data.serviceCode}`;
+        let previewCode = `/* --- src/server.js --- */\n${data.serverCode || ''}\n\n/* --- src/app.js --- */\n${data.appCode || ''}\n\n/* --- src/db.js --- */\n${data.dbCode || ''}\n\n`;
+        
+        ['controllers', 'services', 'routes'].forEach(folder => {
+            if(Array.isArray(data[folder])) {
+                data[folder].forEach(f => {
+                    previewCode += `/* --- src/${folder}/${f.filename} --- */\n${f.code}\n\n`;
+                });
+            }
+        });
+
+        currentSessionData.code = previewCode.trim();
         currentSessionData.readme = data.readme || "# Vibe-Architect Generated Code";
         
-        document.getElementById('tab-code').innerHTML = `<pre>${currentSessionData.code.replace(/</g, '<').replace(/>/g, '>')}</pre>`;
+        const safeCode = currentSessionData.code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        document.getElementById('tab-code').innerHTML = safeCode;
         document.getElementById('tab-readme').innerHTML = marked.parse(currentSessionData.readme);
     });
 
@@ -285,8 +298,13 @@ function restoreCheckpoint(idx) {
     // Load to UI
     el.prompt.value = currentSessionData.prompt;
     document.getElementById('tab-srs').innerHTML = marked.parse(currentSessionData.srs);
-    document.getElementById('tab-sql').innerHTML = `<pre>${currentSessionData.sql}</pre>`;
-    document.getElementById('tab-code').innerHTML = `<pre>${currentSessionData.code.replace(/</g, '<').replace(/>/g, '>')}</pre>`;
+    
+    const safeSql = currentSessionData.sql ? currentSessionData.sql.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+    document.getElementById('tab-sql').innerHTML = safeSql;
+    
+    const safeCode = currentSessionData.code ? currentSessionData.code.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+    document.getElementById('tab-code').innerHTML = safeCode;
+    
     document.getElementById('tab-readme').innerHTML = marked.parse(currentSessionData.readme);
     
     // Switch to ERD Tab to render

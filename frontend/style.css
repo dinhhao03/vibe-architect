@@ -125,6 +125,7 @@ textarea.input-modern { min-height: 120px; }
 /* Right Panel (Previews) */
 .right-panel {
   display: flex; flex-direction: column; background: var(--bg-secondary);
+  min-width: 0; min-height: 0; /* Fix flex child overflow ngập layout */
 }
 .preview-header {
   height: 50px; border-bottom: 1px solid var(--border-color); display: flex;
@@ -140,9 +141,9 @@ textarea.input-modern { min-height: 120px; }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg-secondary); }
 
 .preview-content {
-  flex: 1; padding: 1.5rem; overflow-y: auto; position: relative;
+  flex: 1; padding: 1.5rem; overflow: auto; position: relative; min-height: 0; min-width: 0;
 }
-.tab-pane { display: none; height: 100%; }
+.tab-pane { display: none; }
 .tab-pane.active { display: block; }
 .empty-state { color: var(--text-muted); text-align: center; margin-top: 3rem; font-style: italic; }
 
@@ -152,7 +153,7 @@ textarea.input-modern { min-height: 120px; }
 .markdown-body p { margin-bottom: 1rem; }
 .markdown-body ul, .markdown-body ol { margin-left: 1.5rem; margin-bottom: 1rem; }
 .markdown-body pre { background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; overflow-x: auto; margin-bottom: 1rem; }
-.code-body { white-space: pre-wrap; font-family: monospace; background: var(--bg-primary); padding: 1rem; border-radius: 6px; border: 1px solid var(--border-color); }
+.code-body { white-space: pre-wrap; word-break: break-all; word-wrap: break-word; font-family: monospace; background: var(--bg-primary); padding: 1rem; border-radius: 6px; border: 1px solid var(--border-color); }
 
 /* Custom Scrollbar for Workspace */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
