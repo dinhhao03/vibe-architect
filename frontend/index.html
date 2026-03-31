@@ -1,68 +1,145 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibe Architect - Smart Generator</title>
+    <title>Vibe Architect - Smart AI Scaffolding Engine</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Mermaid.js for Live Preview -->
+    <!-- Mermaid.js for Live Preview ERD -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({startOnLoad: false, theme: 'dark'});</script>
+    <!-- Marked.js for Markdown render -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <!-- Left Panel: Prompt Input -->
-        <main class="chat-panel card">
-            <header>
-                <h1>✨ Vibe Architect</h1>
-                <p>Mô tả ý tưởng, AI sẽ đẻ ra toàn bộ dự án.</p>
-            </header>
 
-            <div class="content">
-                <form id="scaffoldForm">
+    <!-- Landing Page (Intro) -->
+    <div id="landingPage" class="landing-page active">
+        <div class="landing-content">
+            <h1 class="landing-title">✨ Vibe Architect v2.0</h1>
+            <p class="landing-subtitle">Hệ sinh thái kiến trúc phần mềm AI chạy nội bộ (Local-Only).</p>
+            <p class="landing-desc">Chỉ cần đưa ý tưởng, Multi-Agent Orchestration sẽ sinh ra từ Tài liệu Yêu Cầu (SRS), Database (ERD, SQL) cho đến toàn bộ Kiến trúc Code Backend chuẩn MVC chỉ trong một nốt nhạc!</p>
+            <button id="getStartedBtn" class="btn-primary btn-large">Bắt đầu ngay 🚀</button>
+        </div>
+        <!-- Vòng xoay động làm nền nhẹ -->
+        <div class="background-anim"></div>
+    </div>
+
+    <!-- Main Workspace (App) -->
+    <div id="workspace" class="workspace hidden">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">✨ Vibe Architect</div>
+            <div class="toolbar">
+                <button id="themeToggle" class="btn-icon" title="Sáng/Tối">☀️</button>
+                <button id="btnExportZip" class="btn-primary hidden">📥 Tải Full ZIP Artifacts</button>
+            </div>
+        </header>
+
+        <div class="split-pane">
+            <!-- Cột trái: Điều khiển & Nhập liệu -->
+            <aside class="left-panel">
+                
+                <!-- History / Checkpoints -->
+                <section class="panel-section history-section">
+                    <h3>⏳ Lịch sử Checkpoints (Local)</h3>
+                    <ul id="historyList" class="history-list">
+                        <!-- JS Render -->
+                    </ul>
+                </section>
+
+                <!-- Input Config -->
+                <section class="panel-section input-section">
                     <div class="form-group">
-                        <label for="prompt">Nhập Business Logic của bạn:</label>
-                        <textarea id="prompt" placeholder="Ví dụ: Tôi muốn xây dựng ứng dụng Quản lý Quán Ăn, yêu cầu có Đặt món (giỏ hàng, thanh toán), Quản lý bàn, Lịch sử hóa đơn.. Mức độ vừa phải."></textarea>
+                        <label for="presetSelect">📦 Mẫu dự án (Preset):</label>
+                        <select id="presetSelect" class="input-modern">
+                            <option value="custom">-- Ý tưởng tùy biến --</option>
+                            <option value="ecommerce">🛒 Sàn Thương Mại Điện Tử</option>
+                            <option value="library">📚 Hệ Thống Quản Lý Thư Viện</option>
+                            <option value="taskmanager">✅ Ứng Dụng Quản Lý Công Việc</option>
+                            <option value="smarthome">🏠 Hệ Thống Quản Lý Smart Home</option>
+                            <option value="petcare">🐾 Ứng Dụng Chăm Sóc Thú Cưng</option>
+                        </select>
                     </div>
-                    
+
                     <div class="form-group flex-row">
-                        <div>
-                            <label for="techStack">Frontend / Backend Tech:</label>
-                            <select id="techStack">
-                                <option value="Node.js">Node.js + React.js</option>
-                                <option value="Python">Python + Django</option>
-                            </select>
+                        <label for="techStack">Stack Backend:</label>
+                        <select id="techStack" class="input-modern w-full" disabled>
+                            <option value="Node.js">Node.js + Express (MVC)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prompt">💡 Tùy biến Yêu Cầu Dự Án:</label>
+                        <textarea id="prompt" class="input-modern" placeholder="Mô tả các yêu cầu, quy trình hoạt động, loại người dùng, chức năng chính... Càng chi tiết, AI code càng chuẩn!"></textarea>
+                    </div>
+                </section>
+
+                <!-- Action Toolbar -->
+                <section class="action-section">
+                    <button id="btnGenerate" class="btn-primary w-full">Thực thi Pipeline (Generate) ⚡</button>
+                    <div class="action-row mt-2">
+                        <button id="btnRefine" class="btn-secondary hidden" title="Sửa lại prompt và dồn context">Refine / Regenerate 🔄</button>
+                        <button id="btnReset" class="btn-danger w-full hidden">Khởi tạo lại 🗑️</button>
+                    </div>
+                </section>
+
+                <!-- Multi-agent Status Tracker -->
+                <section id="statusPanel" class="panel-section status-section mt-4 hidden">
+                    <h3>🛠️ Tiến trình Agents Pipeline:</h3>
+                    <ul class="agent-list">
+                        <li id="statusAgent1" class="waiting">
+                            <span class="icon">⏳</span> <strong>Agent 1 (Bussiness Analyst):</strong> <span class="desc">Phân tích yêu cầu...</span>
+                        </li>
+                        <li id="statusAgent2" class="waiting">
+                            <span class="icon">⏳</span> <strong>Agent 2 (Data Architect):</strong> <span class="desc">Thiết kế ERD & Schema...</span>
+                        </li>
+                        <li id="statusAgent3" class="waiting">
+                            <span class="icon">⏳</span> <strong>Agent 3 (Backend Developer):</strong> <span class="desc">Dựng Database & Code MVC...</span>
+                        </li>
+                        <li id="statusValidator" class="waiting">
+                            <span class="icon">⏳</span> <strong>Validation Layer:</strong> <span class="desc">Kiểm tra tính toàn vẹn Data...</span>
+                        </li>
+                    </ul>
+                </section>
+            </aside>
+
+            <!-- Cột phải: Live Preview đa tab -->
+            <main class="right-panel">
+                <div class="preview-header">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-target="tab-srs">📝 SRS</button>
+                        <button class="tab-btn" data-target="tab-erd">📊 ERD</button>
+                        <button class="tab-btn" data-target="tab-sql">💽 SQL Schema</button>
+                        <button class="tab-btn" data-target="tab-code">💻 Backend Scaffold</button>
+                        <button class="tab-btn" data-target="tab-readme">📖 README</button>
+                    </div>
+                    <div class="tab-actions">
+                        <button id="btnDownloadSingle" class="btn-outline">Tải Text File Tab Hiện Tại ⬇️</button>
+                    </div>
+                </div>
+
+                <div class="preview-content">
+                    <div id="tab-srs" class="tab-pane active markdown-body">
+                        <div class="empty-state">Chờ hệ thống phân tích Requirement (SRS)...</div>
+                    </div>
+                    <div id="tab-erd" class="tab-pane">
+                        <div id="mermaidViewer" class="mermaid">
+                            graph TD; A[Live ERD Preview] --> B(Đang rỗng);
                         </div>
                     </div>
-
-                    <button type="submit" id="generateBtn">
-                        <span id="btnText">Khởi tạo Architeture 🚀</span>
-                        <div id="loader" class="loader hidden"></div>
-                    </button>
-                    
-                    <div id="statusOutput" class="status-box hidden">
-                        <h4>Tiến trình chạy nền (Multi-agent Log):</h4>
-                        <ul id="logList"></ul>
+                    <div id="tab-sql" class="tab-pane code-body">
+                        <div class="empty-state">Chờ AI Data Architect đẻ SQL...</div>
                     </div>
-                </form>
-            </div>
-        </main>
-
-        <!-- Right Panel: Live Preview -->
-        <aside class="preview-panel card">
-            <header>
-                <h2>👁 Live Preview (ERD)</h2>
-                <button id="downloadBtn" class="download-btn hidden" disabled>Tải ZIP Architecture</button>
-            </header>
-            
-            <div id="previewContainer">
-                <div class="empty-state">
-                    <p>Sơ đồ Database (ERD) sẽ được render tự động (Observer Pattern) ở đây sau khi Agent 2 chạy xong.</p>
+                    <div id="tab-code" class="tab-pane code-body">
+                        <div class="empty-state">Chờ AI Backend nhả Flow Controller...</div>
+                    </div>
+                    <div id="tab-readme" class="tab-pane markdown-body">
+                        <div class="empty-state">Chưa khởi tạo hướng dẫn chạy...</div>
+                    </div>
                 </div>
-                <!-- Vùng render vẽ sơ đồ -->
-                <div id="mermaidViewer" class="mermaid"></div>
-            </div>
-        </aside>
+            </main>
+        </div>
     </div>
 
     <!-- Application Script -->

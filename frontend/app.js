@@ -1,100 +1,329 @@
-document.getElementById('scaffoldForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+// --- DOM ELEMENTS ---
+const el = {
+    landing: document.getElementById('landingPage'),
+    btnStart: document.getElementById('getStartedBtn'),
+    workspace: document.getElementById('workspace'),
+    preset: document.getElementById('presetSelect'),
+    prompt: document.getElementById('prompt'),
+    btnGen: document.getElementById('btnGenerate'),
+    btnRefine: document.getElementById('btnRefine'),
+    btnReset: document.getElementById('btnReset'),
+    statusPanel: document.getElementById('statusPanel'),
+    historyList: document.getElementById('historyList'),
+    tabBtns: document.querySelectorAll('.tab-btn'),
+    tabPanes: document.querySelectorAll('.tab-pane'),
+    btnExportZip: document.getElementById('btnExportZip'),
+    btnDownloadSingle: document.getElementById('btnDownloadSingle'),
+    themeToggle: document.getElementById('themeToggle'),
+    statusAgents: {
+        1: document.getElementById('statusAgent1'),
+        2: document.getElementById('statusAgent2'),
+        3: document.getElementById('statusAgent3'),
+        v: document.getElementById('statusValidator')
+    }
+};
 
-    const prompt = document.getElementById('prompt').value;
-    const techStack = document.getElementById('techStack').value;
-    const btnText = document.getElementById('btnText');
-    const loader = document.getElementById('loader');
-    const submitBtn = document.getElementById('generateBtn');
-    const statusOutput = document.getElementById('statusOutput');
-    const logList = document.getElementById('logList');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const emptyState = document.querySelector('.empty-state');
-    const mermaidViewer = document.getElementById('mermaidViewer');
+// --- GLOBAL STATE ---
+let currentSessionData = {
+    id: null,
+    prompt: '',
+    srs: '',
+    erd: '',
+    sql: '',
+    code: '',
+    readme: '',
+    timestamp: null
+};
 
-    if (!prompt.trim()) {
-        alert("Vui lòng nhập nghiệp vụ bạn muốn làm!");
+const PRESETS = {
+    custom: '',
+    ecommerce: 'Xây dựng sàn thương mại điện tử: người dùng có thể mua hàng, đưa đồ vào giỏ, thanh toán. Quản trị viên có thể thêm bớt sản phẩm, xem đơn hàng.',
+    library: 'Hệ thống quản lý thư viện: Thủ thư có thể thêm sách, quản lý độc giả mượn/trả sách. Tính phí phạt nếu quá hạn.',
+    taskmanager: 'Ứng dụng quản lý công việc (Trello clone): User tạo Bảng, Cột, Thẻ. Assign việc cho nhau, comment và set Deadline.',
+    smarthome: 'Hệ thống Smart Home Backend: Cho phép thiết lập các thiết bị (Đèn, Điều hòa), tạo Ngữ cảnh (Scene) để tự động bật tắt theo giờ, lưu lịch sử thiết bị.',
+    petcare: 'Web app chăm sóc thú cưng: Người dùng đặt lịch khám thú y, theo dõi hồ sơ thú cưng, lịch tiêm chủng, và mua thức ăn lưu giỏ hàng.'
+};
+
+// --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Landing Page
+    el.btnStart.addEventListener('click', () => {
+        el.landing.style.opacity = '0';
+        setTimeout(() => {
+            el.landing.classList.add('hidden');
+            el.workspace.classList.remove('hidden');
+            loadHistory();
+        }, 500);
+    });
+
+    // 2. Presets
+    el.preset.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (PRESETS[val]) el.prompt.value = PRESETS[val];
+        else el.prompt.value = '';
+    });
+
+    // 3. Theme Toggle
+    el.themeToggle.addEventListener('click', () => {
+        const root = document.documentElement;
+        const newTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', newTheme);
+        el.themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        mermaid.initialize({ theme: newTheme }); // update mermaid theme
+    });
+
+    // 4. Tabs
+    el.tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            el.tabBtns.forEach(b => b.classList.remove('active'));
+            el.tabPanes.forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            const target = btn.getAttribute('data-target');
+            document.getElementById(target).classList.add('active');
+            
+            // Re-render mermaid if tab is ERD
+            if (target === 'tab-erd' && currentSessionData.erd) {
+                renderMermaid();
+            }
+        });
+    });
+
+    // 5. Buttons
+    el.btnGen.addEventListener('click', () => startPipeline(false));
+    el.btnRefine.addEventListener('click', () => startPipeline(true)); // Regenerate with dồn context
+    el.btnReset.addEventListener('click', resetWorkspace);
+    el.btnDownloadSingle.addEventListener('click', downloadSingleArtifact);
+    el.btnExportZip.addEventListener('click', downloadFullZip);
+});
+
+// --- CORE PIPELINE (SSE) ---
+let eventSource = null;
+
+function startPipeline(isRefine) {
+    const rawPrompt = el.prompt.value.trim();
+    if (!rawPrompt) {
+        alert("Vui lòng nhập Prompt mô tả dự án!");
         return;
     }
 
-    // Reset UI states
-    btnText.textContent = 'Đang suy nghĩ...';
-    loader.classList.remove('hidden');
-    submitBtn.disabled = true;
-    statusOutput.classList.remove('hidden');
-    logList.innerHTML = '';
-    downloadBtn.classList.add('hidden');
-    downloadBtn.disabled = true;
-    
-    emptyState.classList.add('hidden');
-    mermaidViewer.innerHTML = '';
+    // Nếu Refine => Gộp Prompt cũ và mới
+    const finalPrompt = isRefine ? `[LỊCH SỬ DỰ ÁN CŨ]:\n${currentSessionData.prompt}\n\n[BỔ SUNG/SỬA ĐỔI MỚI]:\n${rawPrompt}` : rawPrompt;
 
-    const queryParams = new URLSearchParams({ prompt, techStack }).toString();
-    const eventSource = new EventSource(`/api/generate?${queryParams}`);
+    // Reset UI
+    clearPreviews();
+    el.statusPanel.classList.remove('hidden');
+    resetAgentUI();
+    toggleButtons(true);
+    
+    // Init state
+    currentSessionData = {
+        id: 'chk_' + Date.now(),
+        prompt: finalPrompt,
+        timestamp: new Date().toLocaleString()
+    };
+
+    // Open connection
+    const url = `/api/generate?prompt=${encodeURIComponent(finalPrompt)}&tech=Node.js`;
+    eventSource = new EventSource(url);
 
     eventSource.addEventListener('progress', (e) => {
         const data = JSON.parse(e.data);
-        const li = document.createElement('li');
-        li.textContent = `⏳ ${data.message}`;
-        logList.appendChild(li);
-        logList.scrollTop = logList.scrollHeight; // Auto scroll to bottom
+        console.log("Progress:", data.message);
+        // Trích xuất step để báo UI
+        if (data.message.includes('Agent 1')) updateAgentUI(1, 'working');
+        else if (data.message.includes('Agent 2')) { updateAgentUI(1, 'done'); updateAgentUI(2, 'working'); }
+        else if (data.message.includes('Agent 3')) { updateAgentUI(2, 'done'); updateAgentUI(3, 'working'); }
+        else if (data.message.includes('Tải file')) { updateAgentUI(3, 'done'); updateAgentUI('v', 'working'); }
     });
 
-    eventSource.addEventListener('db_ready', async (e) => {
+    eventSource.addEventListener('srs_ready', (e) => {
         const data = JSON.parse(e.data);
-        const li = document.createElement('li');
-        li.textContent = `✅ Sơ đồ ERD đã tải xong. Rendering...`;
-        logList.appendChild(li);
+        const md = `# Overview\n${data.projectOverview}\n\n## User Stories\n${data.userStories.map(u => `- **${u.id} - ${u.title}**: ${u.story}`).join('\n')}`;
+        currentSessionData.srs = md;
+        document.getElementById('tab-srs').innerHTML = marked.parse(md);
+    });
+
+    eventSource.addEventListener('db_ready', (e) => {
+        const data = JSON.parse(e.data);
+        currentSessionData.erd = data.erd;
+        currentSessionData.sql = data.sql;
+        renderMermaid();
+        document.getElementById('tab-sql').innerHTML = `<pre>${data.sql}</pre>`;
+    });
+
+    eventSource.addEventListener('backend_ready', (e) => {
+        const data = JSON.parse(e.data);
+        currentSessionData.code = `/* Controller */\n${data.controllerCode}\n\n/* Routes */\n${data.routeCode}\n\n/* Service */\n${data.serviceCode}`;
+        currentSessionData.readme = data.readme || "# Vibe-Architect Generated Code";
         
-        // Render ERD Preview using Mermaid
-        try {
-            // Chuẩn hóa cú pháp dbdiagram.io sang mermaid erDiagram
-            // Vì prompt API yêu cầu dbdbigram.io, ở đây làm 1 bước tạm (Mock) nếu cần,
-            // hoặc gửi tín hiệu cho Mermaid. Giả sử API trả về Mermaid raw từ AIClient.
-            let mermaidCode = "erDiagram\n";
-            // Ráp data (Bản nâng cấp sẽ dùng prompt trả thẳng mermaid)
-            let rawLines = data.erd.split('\\n');
-            const erdSafe = data.erd.replace(/```mermaid/g, '').replace(/```/g, '');
-            
-            // Vẽ ERD
-            mermaidViewer.innerHTML = `<div class="mermaid">${erdSafe}</div>`;
-            await mermaid.run({ nodes: [mermaidViewer.querySelector('.mermaid')] });
-        } catch(error) {
-            console.error("Mermaid Render Error:", error);
-            mermaidViewer.innerHTML = "<p style='color: #ef4444'>Lỗi render sơ đồ, vui lòng xem trong file ZIP tải về.</p>";
-        }
+        document.getElementById('tab-code').innerHTML = `<pre>${currentSessionData.code.replace(/</g, '<').replace(/>/g, '>')}</pre>`;
+        document.getElementById('tab-readme').innerHTML = marked.parse(currentSessionData.readme);
     });
 
     eventSource.addEventListener('complete', (e) => {
         const data = JSON.parse(e.data);
-        
-        const li = document.createElement('li');
-        li.innerHTML = `🎉 <strong>Thành công! File dự án đã sẵn sàng.</strong>`;
-        logList.appendChild(li);
-        
-        btnText.textContent = 'Khởi tạo Architecture 🚀';
-        loader.classList.add('hidden');
-        submitBtn.disabled = false;
-        
-        // Hiển thị nút tải
-        downloadBtn.onclick = () => window.location.href = data.downloadUrl;
-        downloadBtn.classList.remove('hidden');
-        downloadBtn.disabled = false;
-
-        // Auto tăt EventSource (Đóng stream)
+        updateAgentUI('v', 'done');
+        toggleButtons(false);
+        el.btnExportZip.classList.remove('hidden');
+        el.btnExportZip.setAttribute('data-url', data.downloadUrl);
+        saveCheckpoint();
         eventSource.close();
     });
 
     eventSource.addEventListener('error', (e) => {
-        const data = JSON.parse(e.data);
-        
-        const li = document.createElement('li');
-        li.innerHTML = `❌ <strong style="color:#ef4444;">Lỗi Server: ${data.message}</strong>`;
-        logList.appendChild(li);
-        
-        btnText.textContent = 'Thử lại';
-        loader.classList.add('hidden');
-        submitBtn.disabled = false;
+        updateAgentUI('v', 'failed');
+        let errData = { message: "Unknown Error" };
+        try { errData = JSON.parse(e.data); } catch(ex){}
+        alert("❌ Lỗi Pipeline: " + errData.message);
+        toggleButtons(false);
         eventSource.close();
     });
-});
+}
+
+// --- UI HELPERS ---
+function resetAgentUI() {
+    Object.values(el.statusAgents).forEach(li => {
+        li.className = 'waiting';
+        li.querySelector('.icon').textContent = '⏳';
+    });
+}
+function updateAgentUI(id, state) {
+    const li = el.statusAgents[id];
+    if(!li) return;
+    li.className = state;
+    if (state === 'done') li.querySelector('.icon').textContent = '✅';
+    if (state === 'failed') li.querySelector('.icon').textContent = '❌';
+    if (state === 'working') li.querySelector('.icon').textContent = '⚙️';
+}
+
+function clearPreviews() {
+    document.querySelectorAll('.tab-pane').forEach(p => p.innerHTML = '<div class="empty-state">Đang chờ Dữ liệu...</div>');
+    document.getElementById('tab-erd').innerHTML = `<div id="mermaidViewer" class="mermaid">graph TD; A[Loading] --> B(Đang vẽ...);</div>`;
+}
+
+function renderMermaid() {
+    const viewer = document.getElementById('mermaidViewer');
+    if(!viewer || !currentSessionData.erd) return;
+    
+    // Clean code formatting for mermaid
+    let cleanErd = currentSessionData.erd.replace(/```mermaid/g, '').replace(/```/g, '').trim();
+    if(!cleanErd.startsWith('erDiagram')) cleanErd = "erDiagram\n" + cleanErd;
+
+    viewer.innerHTML = cleanErd;
+    try {
+        viewer.removeAttribute('data-processed'); // force re-render
+        mermaid.run({ nodes: [viewer] });
+    } catch(e) {
+        viewer.innerHTML = `<div class="empty-state" style="color:var(--danger)">Cú pháp ERD bị lỗi. Chọn Refresh hoặc xem SQL.</div>`;
+    }
+}
+
+function toggleButtons(isWorking) {
+    el.btnGen.disabled = isWorking;
+    if(!isWorking && currentSessionData.srs) {
+        el.btnRefine.classList.remove('hidden');
+        el.btnReset.classList.remove('hidden');
+    }
+}
+
+function resetWorkspace() {
+    if(confirm("Xác nhận xóa trắng màn hình? Lịch sử vẫn sẽ được giữ lại.")) {
+        currentSessionData = {};
+        el.prompt.value = '';
+        clearPreviews();
+        el.preset.value = "custom";
+        el.statusPanel.classList.add('hidden');
+        el.btnRefine.classList.add('hidden');
+        el.btnReset.classList.add('hidden');
+        el.btnExportZip.classList.add('hidden');
+    }
+}
+
+// --- HISTORY & CHECKPOINTS ---
+function saveCheckpoint() {
+    let history = JSON.parse(localStorage.getItem('vibe_history') || '[]');
+    // Max 10 items
+    history.unshift(currentSessionData);
+    if(history.length > 10) history = history.slice(0, 10);
+    localStorage.setItem('vibe_history', JSON.stringify(history));
+    loadHistory();
+}
+
+function loadHistory() {
+    const history = JSON.parse(localStorage.getItem('vibe_history') || '[]');
+    el.historyList.innerHTML = '';
+    
+    if(history.length===0) {
+        el.historyList.innerHTML = '<li class="empty-state" style="margin:0;font-size:0.8rem">Chưa có bản nháp nào.</li>';
+        return;
+    }
+
+    history.forEach((sess, idx) => {
+        const titleText = sess.prompt.substring(0, 30) + "...";
+        const html = `
+            <li class="history-item" data-idx="${idx}">
+                <div>
+                    <strong>v${history.length - idx}.</strong> ${titleText}<br>
+                    <small style="color:var(--text-muted)">${sess.timestamp}</small>
+                </div>
+                <span>↻</span>
+            </li>
+        `;
+        el.historyList.insertAdjacentHTML('beforeend', html);
+    });
+
+    document.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', (e) => restoreCheckpoint(e.currentTarget.dataset.idx));
+    });
+}
+
+function restoreCheckpoint(idx) {
+    const history = JSON.parse(localStorage.getItem('vibe_history') || '[]');
+    currentSessionData = history[idx];
+    if(!currentSessionData) return;
+
+    // Load to UI
+    el.prompt.value = currentSessionData.prompt;
+    document.getElementById('tab-srs').innerHTML = marked.parse(currentSessionData.srs);
+    document.getElementById('tab-sql').innerHTML = `<pre>${currentSessionData.sql}</pre>`;
+    document.getElementById('tab-code').innerHTML = `<pre>${currentSessionData.code.replace(/</g, '<').replace(/>/g, '>')}</pre>`;
+    document.getElementById('tab-readme').innerHTML = marked.parse(currentSessionData.readme);
+    
+    // Switch to ERD Tab to render
+    document.querySelector('[data-target="tab-erd"]').click();
+
+    // Enable buttons
+    el.btnRefine.classList.remove('hidden');
+    el.btnReset.classList.remove('hidden');
+    alert("Khôi phục phiên làm việc thành công!");
+}
+
+// --- EXPORT ---
+function downloadSingleArtifact() {
+    // Determine active tab
+    const activeBtn = document.querySelector('.tab-btn.active');
+    const target = activeBtn.getAttribute('data-target');
+    
+    let content = "", filename = "";
+    if(target==='tab-srs') { content = currentSessionData.srs; filename = 'SRS.md'; }
+    if(target==='tab-erd') { content = currentSessionData.erd; filename = 'ERD.mmd'; }
+    if(target==='tab-sql') { content = currentSessionData.sql; filename = 'Database.sql'; }
+    if(target==='tab-code') { content = currentSessionData.code; filename = 'Backend_Code.js'; }
+    if(target==='tab-readme') { content = currentSessionData.readme; filename = 'README.md'; }
+
+    if(!content) return alert("Không có dữ liệu ở tab này!");
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function downloadFullZip() {
+    const url = el.btnExportZip.getAttribute('data-url');
+    if(!url) return alert("ZIP chưa sẵn sàng!");
+    window.location.href = url;
+}

@@ -23,16 +23,23 @@ class AIClient {
                 await new Promise(resolve => setTimeout(resolve, 2500)); // Giả lập AI call
                 if (systemInstruction.includes("Analyst")) {
                     return {
-                        projectName: "Dự án Quán Ăn Demo (MOCK)",
-                        description: "Đây là dữ liệu giả lập vì chưa thiết lập GEMINI_API_KEY. Vui lòng thêm key thật vào file .env để trải nghiệm AI sinh ra cấu trúc cho " + prompt,
+                        projectOverview: "Dự án Demo (MOCK). Đây là dữ liệu cứng do bạn không có Internet hoặc hỏng File .env. Chức năng chính: Đặt món, Tính tiền.",
                         userStories: [
-                            { id: "FR-01", title: "Đặt món", story: "Là khách hàng, tôi muốn đặt món.", acceptanceCriteria: ["Given thực đơn, When bấm thêm, Then món vào giỏ."] }
+                            { id: "FR-01", title: "Khách Đặt món", story: "Là khách hàng, tôi muốn đặt món ăn." },
+                            { id: "FR-02", title: "Thu ngân Tính tiền", story: "Là thu ngân, tôi muốn tính tiền." }
                         ]
                     };
                 } else if (systemInstruction.includes("Architect")) {
                     return {
                         erd: 'erDiagram\n  Users {\n    int id PK\n    string username\n    string password_hash\n    string role\n  }\n  Restaurants {\n    int id PK\n    string name\n    string address\n  }\n  Categories {\n    int id PK\n    string name\n  }\n  MenuItems {\n    int id PK\n    string name\n    float price\n    int category_id FK\n    int restaurant_id FK\n  }\n  Orders {\n    int id PK\n    int user_id FK\n    int restaurant_id FK\n    float total_price\n    string status\n  }\n  OrderItems {\n    int id PK\n    int order_id FK\n    int menu_item_id FK\n    int quantity\n  }\n  Users ||--o{ Orders : "places"\n  Restaurants ||--o{ MenuItems : "offers"\n  Categories ||--o{ MenuItems : "contains"\n  Restaurants ||--o{ Orders : "receives"\n  Orders ||--o{ OrderItems : "includes"\n  MenuItems ||--o{ OrderItems : "ordered_in"',
                         sql: 'CREATE TABLE Users (id SERIAL PRIMARY KEY, username VARCHAR(50) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, role VARCHAR(20));\nCREATE TABLE Restaurants (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, address TEXT);\nCREATE TABLE Categories (id SERIAL PRIMARY KEY, name VARCHAR(50) NOT NULL);\nCREATE TABLE MenuItems (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, price DECIMAL(10,2) NOT NULL, category_id INT REFERENCES Categories(id), restaurant_id INT REFERENCES Restaurants(id));\nCREATE TABLE Orders (id SERIAL PRIMARY KEY, user_id INT REFERENCES Users(id), restaurant_id INT REFERENCES Restaurants(id), total_price DECIMAL(10,2), status VARCHAR(20) DEFAULT \'PENDING\');\nCREATE TABLE OrderItems (id SERIAL PRIMARY KEY, order_id INT REFERENCES Orders(id) ON DELETE CASCADE, menu_item_id INT REFERENCES MenuItems(id), quantity INT NOT NULL);'
+                    };
+                } else if (systemInstruction.includes("Developer")) {
+                    return {
+                        readme: "# Server API Setup\n\n1. `npm install`\n2. `npm start`\n",
+                        controllerCode: "const AppService = require('../services/AppService');\n\nclass AppController {\n  static async index(req, res) {\n    res.json({ message: 'Mock API Loaded' });\n  }\n}\nmodule.exports = AppController;",
+                        serviceCode: "class AppService {\n  static handleLogic() { return true; }\n}\nmodule.exports = AppService;",
+                        routeCode: "const express = require('express');\nconst AppController = require('../controllers/AppController');\nconst router = express.Router();\n\nrouter.get('/dashboard', AppController.index);\n\nmodule.exports = router;"
                     };
                 }
             }
