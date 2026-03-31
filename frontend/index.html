@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Architect - Smart Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Mermaid.js for Live Preview -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad: false, theme: 'dark'});</script>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel: Prompt Input -->
+        <main class="chat-panel card">
+            <header>
+                <h1>✨ Vibe Architect</h1>
+                <p>Mô tả ý tưởng, AI sẽ đẻ ra toàn bộ dự án.</p>
+            </header>
+
+            <div class="content">
+                <form id="scaffoldForm">
+                    <div class="form-group">
+                        <label for="prompt">Nhập Business Logic của bạn:</label>
+                        <textarea id="prompt" placeholder="Ví dụ: Tôi muốn xây dựng ứng dụng Quản lý Quán Ăn, yêu cầu có Đặt món (giỏ hàng, thanh toán), Quản lý bàn, Lịch sử hóa đơn.. Mức độ vừa phải."></textarea>
+                    </div>
+                    
+                    <div class="form-group flex-row">
+                        <div>
+                            <label for="techStack">Frontend / Backend Tech:</label>
+                            <select id="techStack">
+                                <option value="Node.js">Node.js + React.js</option>
+                                <option value="Python">Python + Django</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="generateBtn">
+                        <span id="btnText">Khởi tạo Architeture 🚀</span>
+                        <div id="loader" class="loader hidden"></div>
+                    </button>
+                    
+                    <div id="statusOutput" class="status-box hidden">
+                        <h4>Tiến trình chạy nền (Multi-agent Log):</h4>
+                        <ul id="logList"></ul>
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <!-- Right Panel: Live Preview -->
+        <aside class="preview-panel card">
+            <header>
+                <h2>👁 Live Preview (ERD)</h2>
+                <button id="downloadBtn" class="download-btn hidden" disabled>Tải ZIP Architecture</button>
+            </header>
+            
+            <div id="previewContainer">
+                <div class="empty-state">
+                    <p>Sơ đồ Database (ERD) sẽ được render tự động (Observer Pattern) ở đây sau khi Agent 2 chạy xong.</p>
+                </div>
+                <!-- Vùng render vẽ sơ đồ -->
+                <div id="mermaidViewer" class="mermaid"></div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>

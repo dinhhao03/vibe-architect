@@ -1,0 +1,5 @@
+node_modules/
+.env
+vibe-architect-test.zip
+*.zip
+.DS_Store
