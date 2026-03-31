@@ -171,7 +171,10 @@ Generate a PRO Node.js MVC backend. Create exactly src/db.js, src/app.js, src/se
 });
 
 router.get('/download', (req, res) => {
-    const fileName = req.query.file;
+    // SECURITY FIX: Prevent Directory Traversal Vulnerability (VD: req.query.file = "../../../windows/sys32")
+    const fileName = path.basename(req.query.file || '');
+    if (!fileName) return res.status(400).send('Bad Request');
+    
     const filePath = path.resolve(process.cwd(), 'downloads', fileName);
 
     if (fs.existsSync(filePath)) {

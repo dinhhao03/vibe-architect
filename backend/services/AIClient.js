@@ -63,7 +63,16 @@ class AIClient {
                         contents: prompt,
                         config: config
                     });
-                    if (responseSchema) return JSON.parse(response.text);
+                    if (responseSchema) {
+                        let textStr = response.text.trim();
+                        // Google AI sometimes wraps raw JSON inside Markdown format
+                        if (textStr.startsWith('```json')) {
+                            textStr = textStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                        } else if (textStr.startsWith('```')) {
+                            textStr = textStr.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                        }
+                        return JSON.parse(textStr);
+                    }
                     return response.text;
                 } catch (e) {
                     lastError = e;
