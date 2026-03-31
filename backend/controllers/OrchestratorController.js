@@ -59,13 +59,13 @@ router.get('/generate', async (req, res) => {
         const dbSchema = {
             type: "OBJECT",
             properties: {
-                erd: { type: "STRING", description: "dbdiagram.io syntax code, starting with Table... Do not wrap in markdown tags." },
+                erd: { type: "STRING", description: "Mermaid erDiagram syntax code. Do not wrap in markdown tags." },
                 sql: { type: "STRING", description: "SQL DDL queries to create the tables in 3NF with constraints. Do not wrap in markdown tags." }
             },
             required: ["erd", "sql"]
         };
         
-        const dbPrompt = `Based on these user stories: ${JSON.stringify(srsData.userStories)}, design the database. Output 'erd' using dbdiagram.io syntax, and 'sql' using PostgreSQL syntax in 3NF.`;
+        const dbPrompt = `Based on these user stories: ${JSON.stringify(srsData.userStories)}, design the database. Output 'erd' using Mermaid erDiagram syntax, and 'sql' using PostgreSQL syntax in 3NF.`;
         
         const dbData = await aiClient.generate(dbPrompt, "You are a Senior Database Architect.", dbSchema);
         sendEvent('db_ready', dbData);
@@ -81,11 +81,12 @@ router.get('/generate', async (req, res) => {
         };
 
         const zipPath = await ScaffoldFactory.createProjectZip(projectData);
-        
+        const fileName = require('path').basename(zipPath);
+
         sendEvent('progress', { message: 'Hoàn tất! Bắt đầu tải file...' });
         
-        // Cần truyền đường dẫn file cho client tải về thông qua 1 route khác
-        sendEvent('complete', { downloadUrl: `/api/download?file=${encodeURIComponent(zipPath)}` });
+        // Cần truyền tên file thay vì cả đường dẫn tuyệt đối (tránh lỗi Window PATH decode)
+        sendEvent('complete', { downloadUrl: `/api/download?file=${encodeURIComponent(fileName)}` });
 
     } catch (error) {
         console.error("Orchestrator Error:", error);
@@ -96,17 +97,21 @@ router.get('/generate', async (req, res) => {
 });
 
 router.get('/download', (req, res) => {
-    const filePath = req.query.file;
+    const fileName = req.query.file;
+    const filePath = require('path').resolve(process.cwd(), 'downloads', fileName);
+
     if (fs.existsSync(filePath)) {
         res.download(filePath, 'Vibe-Architect-Project.zip', (err) => {
             if (err) {
                 console.error("Download Error:", err);
             }
-            // Cleanup file after download
-            fs.unlinkSync(filePath);
+            // Tránh xóa ngay lập tức nếu trình duyệt thực hiện multiple requests
+            setTimeout(() => {
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            }, 5000);
         });
     } else {
-        res.status(404).send('File not found');
+        res.status(404).send('File not found trên Backend System. Vui lòng tạo lại!');
     }
 });
 

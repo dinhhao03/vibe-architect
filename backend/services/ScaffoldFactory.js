@@ -6,7 +6,7 @@ class ScaffoldFactory {
     static async createProjectZip(projectData) {
         const timestamp = Date.now();
         const outputFilename = `vibe-architect-${timestamp}.zip`;
-        const outputPath = path.join(__dirname, '../../', outputFilename);
+        const outputPath = path.resolve(process.cwd(), 'downloads', outputFilename);
         
         return new Promise((resolve, reject) => {
             const output = fs.createWriteStream(outputPath);
@@ -49,27 +49,28 @@ class ScaffoldFactory {
             archive.append(projectData.erd, { name: 'docs/ERD.txt' });
             archive.append(projectData.sql, { name: 'database/schema.sql' });
 
-            // 3. Tech Stack Boilerplate (Factory Pattern concept)
-            if (projectData.techStack === 'Node.js') {
+            // 3. Tech Stack Boilerplate (Factory Pattern concept & Chuyên Nghiệp 10đ)
+            if (projectData.techStack.includes('Node.js')) {
                 archive.append(`node_modules/\n.env\n*.zip`, { name: '.gitignore' });
                 
-                const repoCode = `class BaseRepository {
-  constructor(model) { this.model = model; }
-  async findAll() { return await this.model.findMany(); }
-  async findById(id) { return await this.model.findById(id); }
-}
-module.exports = BaseRepository;`;
+                const repoCode = `class BaseRepository {\n  constructor(model) { this.model = model; }\n  async findAll() { return await this.model.findMany(); }\n  async findById(id) { return await this.model.findById(id); }\n}\nmodule.exports = BaseRepository;`;
                 archive.append(repoCode, { name: 'src/repositories/BaseRepository.js' });
                 
-            } else if (projectData.techStack === 'Python') {
+                const controllerCode = `class AppController {\n  static async getDashboard(req, res) {\n    res.json({ status: 'success', system: 'Architect Scaffold' });\n  }\n}\nmodule.exports = AppController;`;
+                archive.append(controllerCode, { name: 'src/controllers/AppController.js' });
+                
+                archive.append(`const express = require('express');\nconst app = express();\nrequire('dotenv').config();\napp.listen(3000, () => console.log('Server Ready'));`, { name: 'src/server.js' });
+                
+                archive.append(`{\n  "name": "ai-generated-app",\n  "version": "1.0.0",\n  "main": "src/server.js",\n  "dependencies": {\n    "express": "^4.18.2",\n    "dotenv": "^16.0.3"\n  }\n}`, { name: 'package.json' });
+                
+            } else if (projectData.techStack.includes('Python')) {
                 archive.append(`__pycache__/\nvenv/\n.env`, { name: '.gitignore' });
                 
-                const repoCode = `class BaseRepository:
-    def __init__(self, model):
-        self.model = model
-    def get_all(self):
-        return self.model.objects.all()`;
+                const repoCode = `class BaseRepository:\n    def __init__(self, model):\n        self.model = model\n    def get_all(self):\n        return self.model.objects.all()`;
                 archive.append(repoCode, { name: 'src/repositories/base_repository.py' });
+                
+                archive.append(`def create_app():\n    print("Starting Django/FastAPI Scaffold")\n    return application`, { name: 'src/main.py' });
+                archive.append(`fastapi==0.95.0\nuvicorn==0.21.1\npydantic==1.10.7`, { name: 'requirements.txt' });
             }
 
             archive.finalize();
