@@ -2,6 +2,12 @@ const { GoogleGenAI } = require('@google/genai');
 const dotenv = require('dotenv');
 dotenv.config();
 
+// Danh sách Model ưu tiên: Pro → Flash → Mock
+const MODEL_CASCADE = [
+    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+];
+
 class AIClient {
     constructor() {
         if (!AIClient.instance) {
@@ -9,63 +15,52 @@ class AIClient {
             if (this.apiKey && this.apiKey !== '') {
                 this.ai = new GoogleGenAI({ apiKey: this.apiKey });
             } else {
-                console.log("No GEMINI_API_KEY found, running in MOCK mode.");
+                console.log("[AIClient] No GEMINI_API_KEY found → MOCK mode.");
                 this.isMock = true;
             }
+            this.currentModelIndex = 0; // Bắt đầu từ Pro
             AIClient.instance = this;
         }
         return AIClient.instance;
     }
 
-    async generate(prompt, systemInstruction = '', responseSchema = null, retries = 3) {
-        try {
-            if (this.isMock) {
-                await new Promise(resolve => setTimeout(resolve, 2500)); // Giả lập AI call
-                if (systemInstruction.includes("Analyst")) {
-                    return {
-                        projectOverview: "Dự án Demo (MOCK). Đây là dữ liệu cứng do bạn không có Internet hoặc hỏng File .env. Chức năng chính: Đặt món, Tính tiền.",
-                        userStories: [
-                            { id: "FR-01", title: "Khách Đặt món", story: "Là khách hàng, tôi muốn đặt món ăn." },
-                            { id: "FR-02", title: "Thu ngân Tính tiền", story: "Là thu ngân, tôi muốn tính tiền." }
-                        ]
-                    };
-                } else if (systemInstruction.includes("Architect")) {
-                    return {
-                        erd: 'erDiagram\n  Users {\n    int id PK\n    string username\n    string password_hash\n    string role\n  }\n  Restaurants {\n    int id PK\n    string name\n    string address\n  }\n  Categories {\n    int id PK\n    string name\n  }\n  MenuItems {\n    int id PK\n    string name\n    float price\n    int category_id FK\n    int restaurant_id FK\n  }\n  Orders {\n    int id PK\n    int user_id FK\n    int restaurant_id FK\n    float total_price\n    string status\n  }\n  OrderItems {\n    int id PK\n    int order_id FK\n    int menu_item_id FK\n    int quantity\n  }\n  Users ||--o{ Orders : "places"\n  Restaurants ||--o{ MenuItems : "offers"\n  Categories ||--o{ MenuItems : "contains"\n  Restaurants ||--o{ Orders : "receives"\n  Orders ||--o{ OrderItems : "includes"\n  MenuItems ||--o{ OrderItems : "ordered_in"',
-                        sql: 'CREATE TABLE Users (id SERIAL PRIMARY KEY, username VARCHAR(50) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, role VARCHAR(20));\nCREATE TABLE Restaurants (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, address TEXT);\nCREATE TABLE Categories (id SERIAL PRIMARY KEY, name VARCHAR(50) NOT NULL);\nCREATE TABLE MenuItems (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, price DECIMAL(10,2) NOT NULL, category_id INT REFERENCES Categories(id), restaurant_id INT REFERENCES Restaurants(id));\nCREATE TABLE Orders (id SERIAL PRIMARY KEY, user_id INT REFERENCES Users(id), restaurant_id INT REFERENCES Restaurants(id), total_price DECIMAL(10,2), status VARCHAR(20) DEFAULT \'PENDING\');\nCREATE TABLE OrderItems (id SERIAL PRIMARY KEY, order_id INT REFERENCES Orders(id) ON DELETE CASCADE, menu_item_id INT REFERENCES MenuItems(id), quantity INT NOT NULL);'
-                    };
-                } else if (systemInstruction.includes("Developer")) {
-                    return {
-                        readme: "# Server API Setup Mock\n\n1. `npm install`\n2. `npm start`\n",
-                        dependencies: ["express"],
-                        dbCode: "module.exports = {};",
-                        appCode: "const express = require('express');\nconst AppRoute = require('./routes/AppRoute');\nconst app = express();\napp.use('/api', AppRoute);\nmodule.exports = app;",
-                        serverCode: "const app = require('./app');\napp.listen(3000, () => console.log('Mock Server Running on 3000'));",
-                        controllers: [{ filename: "MockController.js", code: "class MockController {\n  static async index(req, res) {\n    res.json({ message: 'Mock API Loaded' });\n  }\n}\nmodule.exports = MockController;" }],
-                        services: [{ filename: "MockService.js", code: "class MockService {\n  static handleLogic() { return true; }\n}\nmodule.exports = MockService;" }],
-                        routes: [{ filename: "AppRoute.js", code: "const express = require('express');\nconst MockController = require('../controllers/MockController');\nconst router = express.Router();\n\nrouter.get('/dashboard', MockController.index);\n\nmodule.exports = router;" }]
-                    };
-                }
-            }
+    getCurrentModelLabel() {
+        if (this.isMock) return 'Local Mock';
+        return MODEL_CASCADE[this.currentModelIndex]?.label || 'Unknown';
+    }
 
-            const config = {};
-            if (systemInstruction) config.systemInstruction = systemInstruction;
-            if (responseSchema) {
-                config.responseMimeType = "application/json";
-                config.responseSchema = responseSchema;
-            }
+    async generate(prompt, systemInstruction = '', responseSchema = null) {
+        // ===== MOCK MODE =====
+        if (this.isMock) {
+            return this._getMockData(systemInstruction);
+        }
 
-            let lastError;
-            for (let attempt = 1; attempt <= retries; attempt++) {
+        // ===== CASCADING MODEL LOGIC =====
+        // Duyệt từ model hiện tại → cuối danh sách → Mock
+        for (let modelIdx = this.currentModelIndex; modelIdx < MODEL_CASCADE.length; modelIdx++) {
+            const model = MODEL_CASCADE[modelIdx];
+            console.log(`[AIClient] Trying model: ${model.label} (${model.id})`);
+
+            // Mỗi model được retry 2 lần trước khi chuyển sang model tiếp
+            for (let attempt = 1; attempt <= 2; attempt++) {
                 try {
+                    const config = {};
+                    if (systemInstruction) config.systemInstruction = systemInstruction;
+                    if (responseSchema) {
+                        config.responseMimeType = "application/json";
+                        config.responseSchema = responseSchema;
+                    }
+
                     const response = await this.ai.models.generateContent({
-                        model: 'gemini-2.5-flash',
+                        model: model.id,
                         contents: prompt,
                         config: config
                     });
+
+                    // Parse JSON nếu có schema
                     if (responseSchema) {
                         let textStr = response.text.trim();
-                        // Google AI sometimes wraps raw JSON inside Markdown format
+                        // Strip markdown wrapping nếu AI tự bọc
                         if (textStr.startsWith('```json')) {
                             textStr = textStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
                         } else if (textStr.startsWith('```')) {
@@ -74,35 +69,120 @@ class AIClient {
                         return JSON.parse(textStr);
                     }
                     return response.text;
+
                 } catch (e) {
-                    lastError = e;
-                    const errString = String(e.message || e);
-                    console.log(`[AIClient] Attempt ${attempt} failed: ${errString}`);
-                    // Kiểm tra lỗi 503 Quá tải
-                    if (e.status === 503 || errString.includes('503') || errString.includes('high demand') || errString.includes('UNAVAILABLE')) {
-                        if (attempt < retries) {
-                            console.log(`[AIClient] Retrying in ${attempt * 3} seconds due to 503...`);
-                            await new Promise(res => setTimeout(res, attempt * 3000));
-                        }
+                    const errStr = String(e.message || e);
+                    console.warn(`[AIClient] ${model.label} attempt ${attempt} failed: ${errStr.substring(0, 120)}`);
+
+                    const isQuotaOrOverload = (
+                        e.status === 503 || e.status === 429 ||
+                        errStr.includes('503') || errStr.includes('429') ||
+                        errStr.includes('high demand') || errStr.includes('UNAVAILABLE') ||
+                        errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED')
+                    );
+
+                    if (isQuotaOrOverload && attempt < 2) {
+                        // Retry cùng model sau delay
+                        const waitSec = attempt * 3;
+                        console.log(`[AIClient] Retrying ${model.label} in ${waitSec}s...`);
+                        await new Promise(r => setTimeout(r, waitSec * 1000));
+                    } else if (isQuotaOrOverload) {
+                        // Hết retry cho model này → chuyển sang model tiếp
+                        console.warn(`[AIClient] ⚠️ ${model.label} exhausted → Cascading to next model...`);
+                        this.currentModelIndex = modelIdx + 1; // Ghi nhớ để các Agent sau dùng luôn model mới
+                        break; // Thoát vòng retry, vào vòng model tiếp
                     } else {
-                        break; // Nếu lỗi khác (như key sai) thì thoát vòng lặp ngay
+                        // Lỗi khác (API key sai, network...) → throw luôn
+                        throw e;
                     }
                 }
             }
-            
-            // Xử lý throw error rõ ràng cho người dùng
-            const finalErrStr = String(lastError.message || lastError);
-            if (finalErrStr.includes('503') || finalErrStr.includes('high demand')) {
-                throw new Error("Lỗi Server Gemini (503): Máy chủ AI đang cực kỳ quá tải ngay lúc này. Hệ thống Architect đã cố kết nối lại nhiều lần nhưng không thành công. Hãy nghỉ ngơi lấy cốc nước rồi thử lại nhé!");
-            }
-            throw lastError;
-            
-        } catch (error) {
-            console.error("AI Generate Fatal Error:", error);
-            throw error;
         }
+
+        // ===== TẤT CẢ MODEL ĐỀ THẤT BẠI → FALLBACK MOCK =====
+        console.warn("[AIClient] ⚠️ All cloud models failed → Falling back to LOCAL MOCK data.");
+        this.isMock = true;
+        return this._getMockData(systemInstruction);
+    }
+
+    // ===== MOCK DATA (Tầng cuối cùng, luôn hoạt động) =====
+    _getMockData(systemInstruction) {
+        // Giả lập delay AI
+        return new Promise(resolve => {
+            setTimeout(() => {
+                if (systemInstruction.includes("Analyst")) {
+                    resolve({
+                        projectName: "Demo Project (Mock)",
+                        projectOverview: "Dự án Demo sinh từ chế độ Mock Local (API hết quota hoặc không có key). Chức năng: Quản lý đơn hàng, Sản phẩm.",
+                        userStories: [
+                            { id: "US-01", title: "Xem sản phẩm", story: "Là người dùng, tôi muốn xem danh sách sản phẩm." },
+                            { id: "US-02", title: "Đặt hàng", story: "Là người dùng, tôi muốn đặt mua sản phẩm." },
+                            { id: "US-03", title: "Quản lý đơn", story: "Là admin, tôi muốn quản lý các đơn hàng." }
+                        ]
+                    });
+                } else if (systemInstruction.includes("Architect")) {
+                    resolve({
+                        erd: 'erDiagram\n  Users {\n    int id PK\n    string username\n    string email\n    string role\n  }\n  Products {\n    int id PK\n    string name\n    float price\n    int stock\n  }\n  Orders {\n    int id PK\n    int user_id FK\n    float total\n    string status\n  }\n  OrderItems {\n    int id PK\n    int order_id FK\n    int product_id FK\n    int quantity\n  }\n  Users ||--o{ Orders : "places"\n  Orders ||--o{ OrderItems : "contains"\n  Products ||--o{ OrderItems : "included_in"',
+                        sql: 'CREATE TABLE Users (id SERIAL PRIMARY KEY, username VARCHAR(50) UNIQUE NOT NULL, email VARCHAR(100), role VARCHAR(20) DEFAULT \'user\');\nCREATE TABLE Products (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, price DECIMAL(10,2) NOT NULL, stock INT DEFAULT 0);\nCREATE TABLE Orders (id SERIAL PRIMARY KEY, user_id INT REFERENCES Users(id), total DECIMAL(10,2), status VARCHAR(20) DEFAULT \'PENDING\', created_at TIMESTAMP DEFAULT NOW());\nCREATE TABLE OrderItems (id SERIAL PRIMARY KEY, order_id INT REFERENCES Orders(id) ON DELETE CASCADE, product_id INT REFERENCES Products(id), quantity INT NOT NULL);'
+                    });
+                } else if (systemInstruction.includes("Developer")) {
+                    // Detect Flask vs Node
+                    if (systemInstruction.includes("Flask") || systemInstruction.includes("Python")) {
+                        resolve(this._getMockFlask());
+                    } else {
+                        resolve(this._getMockNode());
+                    }
+                } else {
+                    resolve({ message: "Mock fallback" });
+                }
+            }, 1500);
+        });
+    }
+
+    _getMockNode() {
+        return {
+            readme: "# Mock Node.js Backend\n\n```bash\nnpm install\nnpm start\n```\n\nServer chạy tại http://localhost:3000",
+            dependencies: ["express", "cors", "dotenv"],
+            dbCode: "// Database connection placeholder\nconst pool = { query: async (sql) => ({ rows: [] }) };\nmodule.exports = pool;",
+            appCode: "const express = require('express');\nconst cors = require('cors');\nconst productRoutes = require('./routes/ProductRoute');\nconst orderRoutes = require('./routes/OrderRoute');\n\nconst app = express();\napp.use(cors());\napp.use(express.json());\napp.use('/api/products', productRoutes);\napp.use('/api/orders', orderRoutes);\n\nmodule.exports = app;",
+            serverCode: "const app = require('./app');\nconst PORT = process.env.PORT || 3000;\napp.listen(PORT, () => console.log(`Server running on port ${PORT}`));",
+            controllers: [
+                { filename: "ProductController.js", code: "const db = require('../db');\n\nclass ProductController {\n  static async getAll(req, res) {\n    try {\n      const result = await db.query('SELECT * FROM Products');\n      res.json({ success: true, data: result.rows });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n  static async create(req, res) {\n    const { name, price, stock } = req.body;\n    try {\n      const result = await db.query('INSERT INTO Products (name, price, stock) VALUES ($1,$2,$3) RETURNING *', [name, price, stock]);\n      res.status(201).json({ success: true, data: result.rows[0] });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n}\nmodule.exports = ProductController;" },
+                { filename: "OrderController.js", code: "const db = require('../db');\n\nclass OrderController {\n  static async getAll(req, res) {\n    try {\n      const result = await db.query('SELECT * FROM Orders');\n      res.json({ success: true, data: result.rows });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n  static async create(req, res) {\n    const { user_id, total } = req.body;\n    try {\n      const result = await db.query('INSERT INTO Orders (user_id, total) VALUES ($1,$2) RETURNING *', [user_id, total]);\n      res.status(201).json({ success: true, data: result.rows[0] });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n}\nmodule.exports = OrderController;" }
+            ],
+            services: [
+                { filename: "ProductService.js", code: "class ProductService {\n  static validate(data) {\n    if (!data.name || data.price <= 0) throw new Error('Invalid product');\n    return true;\n  }\n}\nmodule.exports = ProductService;" },
+                { filename: "OrderService.js", code: "class OrderService {\n  static validate(data) {\n    if (!data.user_id) throw new Error('Missing user_id');\n    return true;\n  }\n}\nmodule.exports = OrderService;" }
+            ],
+            routes: [
+                { filename: "ProductRoute.js", code: "const router = require('express').Router();\nconst ProductController = require('../controllers/ProductController');\n\nrouter.get('/', ProductController.getAll);\nrouter.post('/', ProductController.create);\n\nmodule.exports = router;" },
+                { filename: "OrderRoute.js", code: "const router = require('express').Router();\nconst OrderController = require('../controllers/OrderController');\n\nrouter.get('/', OrderController.getAll);\nrouter.post('/', OrderController.create);\n\nmodule.exports = router;" }
+            ]
+        };
+    }
+
+    _getMockFlask() {
+        return {
+            readme: "# Mock Flask Backend\n\n```bash\npip install -r requirements.txt\npython run.py\n```\n\nServer chạy tại http://localhost:5000",
+            dependencies: ["flask", "flask-cors", "python-dotenv"],
+            runCode: "from app import create_app\n\napp = create_app()\n\nif __name__ == '__main__':\n    app.run(debug=True, port=5000)",
+            initCode: "from flask import Flask\nfrom flask_cors import CORS\n\ndef create_app():\n    app = Flask(__name__)\n    CORS(app)\n\n    from app.routes.product_routes import product_bp\n    from app.routes.order_routes import order_bp\n    app.register_blueprint(product_bp, url_prefix='/api/products')\n    app.register_blueprint(order_bp, url_prefix='/api/orders')\n\n    return app",
+            configCode: "import os\nfrom dotenv import load_dotenv\nload_dotenv()\n\nclass Config:\n    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret')\n    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///app.db')",
+            controllers: [
+                { filename: "product_controller.py", code: "from flask import jsonify, request\n\nclass ProductController:\n    @staticmethod\n    def get_all():\n        products = [{'id': 1, 'name': 'Sample Product', 'price': 99.99}]\n        return jsonify({'success': True, 'data': products})\n\n    @staticmethod\n    def create():\n        data = request.get_json()\n        return jsonify({'success': True, 'data': data}), 201" },
+                { filename: "order_controller.py", code: "from flask import jsonify, request\n\nclass OrderController:\n    @staticmethod\n    def get_all():\n        orders = [{'id': 1, 'user_id': 1, 'total': 199.99, 'status': 'PENDING'}]\n        return jsonify({'success': True, 'data': orders})\n\n    @staticmethod\n    def create():\n        data = request.get_json()\n        return jsonify({'success': True, 'data': data}), 201" }
+            ],
+            services: [
+                { filename: "product_service.py", code: "class ProductService:\n    @staticmethod\n    def validate(data):\n        if not data.get('name') or data.get('price', 0) <= 0:\n            raise ValueError('Invalid product data')\n        return True" },
+                { filename: "order_service.py", code: "class OrderService:\n    @staticmethod\n    def validate(data):\n        if not data.get('user_id'):\n            raise ValueError('Missing user_id')\n        return True" }
+            ],
+            routes: [
+                { filename: "product_routes.py", code: "from flask import Blueprint\nfrom app.controllers.product_controller import ProductController\n\nproduct_bp = Blueprint('products', __name__)\n\n@product_bp.route('/', methods=['GET'])\ndef get_all():\n    return ProductController.get_all()\n\n@product_bp.route('/', methods=['POST'])\ndef create():\n    return ProductController.create()" },
+                { filename: "order_routes.py", code: "from flask import Blueprint\nfrom app.controllers.order_controller import OrderController\n\norder_bp = Blueprint('orders', __name__)\n\n@order_bp.route('/', methods=['GET'])\ndef get_all():\n    return OrderController.get_all()\n\n@order_bp.route('/', methods=['POST'])\ndef create():\n    return OrderController.create()" }
+            ]
+        };
     }
 }
 
-// Export singleton instance
+// Singleton export
 module.exports = new AIClient();

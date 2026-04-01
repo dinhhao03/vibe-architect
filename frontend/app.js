@@ -4,6 +4,7 @@ const el = {
     btnStart: document.getElementById('getStartedBtn'),
     workspace: document.getElementById('workspace'),
     preset: document.getElementById('presetSelect'),
+    techStack: document.getElementById('techStack'),
     prompt: document.getElementById('prompt'),
     btnGen: document.getElementById('btnGenerate'),
     btnRefine: document.getElementById('btnRefine'),
@@ -15,6 +16,8 @@ const el = {
     btnExportZip: document.getElementById('btnExportZip'),
     btnDownloadSingle: document.getElementById('btnDownloadSingle'),
     themeToggle: document.getElementById('themeToggle'),
+    progressBar: document.getElementById('progressBar'),
+    progressLabel: document.getElementById('progressLabel'),
     statusAgents: {
         1: document.getElementById('statusAgent1'),
         2: document.getElementById('statusAgent2'),
@@ -113,6 +116,7 @@ function startPipeline(isRefine) {
     clearPreviews();
     el.statusPanel.classList.remove('hidden');
     resetAgentUI();
+    setProgress(0, 'Đang khởi tạo pipeline...');
     toggleButtons(true);
     
     // Init state
@@ -123,17 +127,23 @@ function startPipeline(isRefine) {
     };
 
     // Open connection
-    const url = `/api/generate?prompt=${encodeURIComponent(finalPrompt)}&tech=Node.js`;
+    const tech = el.techStack.value;
+    const url = `/api/generate?prompt=${encodeURIComponent(finalPrompt)}&tech=${encodeURIComponent(tech)}`;
     eventSource = new EventSource(url);
 
     eventSource.addEventListener('progress', (e) => {
         const data = JSON.parse(e.data);
         console.log("Progress:", data.message);
-        // Trích xuất step để báo UI
+        
+        // Progress bar update
+        const stepMap = { 1: 25, 2: 50, 3: 75, 4: 100 };
+        if (data.step) setProgress(stepMap[data.step] || 0, data.message);
+
+        // Agent status icons
         if (data.message.includes('Agent 1')) updateAgentUI(1, 'working');
         else if (data.message.includes('Agent 2')) { updateAgentUI(1, 'done'); updateAgentUI(2, 'working'); }
         else if (data.message.includes('Agent 3')) { updateAgentUI(2, 'done'); updateAgentUI(3, 'working'); }
-        else if (data.message.includes('Tải file')) { updateAgentUI(3, 'done'); updateAgentUI('v', 'working'); }
+        else if (data.message.includes('hoàn tất') || data.message.includes('đóng gói')) { updateAgentUI(3, 'done'); updateAgentUI('v', 'working'); }
     });
 
     eventSource.addEventListener('srs_ready', (e) => {
@@ -168,14 +178,17 @@ function startPipeline(isRefine) {
         currentSessionData.code = previewCode.trim();
         currentSessionData.readme = data.readme || "# Vibe-Architect Generated Code";
         
-        const safeCode = currentSessionData.code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        document.getElementById('tab-code').innerHTML = safeCode;
+        // Syntax Highlighting
+        const lang = el.techStack.value.includes('Python') ? 'python' : 'javascript';
+        const highlighted = hljs.highlight(currentSessionData.code, { language: lang }).value;
+        document.getElementById('tab-code').innerHTML = `<pre><code class="hljs">${highlighted}</code></pre>`;
         document.getElementById('tab-readme').innerHTML = marked.parse(currentSessionData.readme);
     });
 
     eventSource.addEventListener('complete', (e) => {
         const data = JSON.parse(e.data);
         updateAgentUI('v', 'done');
+        setProgress(100, '✅ Pipeline hoàn tất!');
         toggleButtons(false);
         el.btnExportZip.classList.remove('hidden');
         el.btnExportZip.setAttribute('data-url', data.downloadUrl);
@@ -207,6 +220,11 @@ function updateAgentUI(id, state) {
     if (state === 'done') li.querySelector('.icon').textContent = '✅';
     if (state === 'failed') li.querySelector('.icon').textContent = '❌';
     if (state === 'working') li.querySelector('.icon').textContent = '⚙️';
+}
+
+function setProgress(percent, label) {
+    if (el.progressBar) el.progressBar.style.width = percent + '%';
+    if (el.progressLabel) el.progressLabel.textContent = `${percent}% — ${label}`;
 }
 
 function clearPreviews() {

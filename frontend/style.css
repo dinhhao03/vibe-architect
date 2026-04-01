@@ -122,6 +122,19 @@ textarea.input-modern { min-height: 120px; }
 .agent-list li.failed { border-color: var(--danger); opacity: 1; }
 @keyframes flash { 0% { background: var(--bg-secondary); } 50% { background: var(--bg-tertiary); } 100% { background: var(--bg-secondary); } }
 
+/* Progress Bar */
+.progress-bar-container {
+  width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px;
+  overflow: hidden; margin-bottom: 0.4rem;
+}
+.progress-bar {
+  height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+  border-radius: 4px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background-size: 200% 100%; animation: shimmer 2s linear infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.progress-label { font-size: 0.75rem; color: var(--text-muted); text-align: center; }
+
 /* Right Panel (Previews) */
 .right-panel {
   display: flex; flex-direction: column; background: var(--bg-secondary);

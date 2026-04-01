@@ -10,6 +10,9 @@
     <script>mermaid.initialize({startOnLoad: false, theme: 'dark'});</script>
     <!-- Marked.js for Markdown render -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for Syntax Coloring -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
 </head>
 <body>
 
@@ -64,8 +67,9 @@
 
                     <div class="form-group flex-row">
                         <label for="techStack">Stack Backend:</label>
-                        <select id="techStack" class="input-modern w-full" disabled>
+                        <select id="techStack" class="input-modern w-full">
                             <option value="Node.js">Node.js + Express (MVC)</option>
+                            <option value="Python Flask">🐍 Python + Flask (Blueprint)</option>
                         </select>
                     </div>
 
@@ -87,6 +91,10 @@
                 <!-- Multi-agent Status Tracker -->
                 <section id="statusPanel" class="panel-section status-section mt-4 hidden">
                     <h3>🛠️ Tiến trình Agents Pipeline:</h3>
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <p id="progressLabel" class="progress-label">0% — Đang khởi tạo...</p>
                     <ul class="agent-list">
                         <li id="statusAgent1" class="waiting">
                             <span class="icon">⏳</span> <strong>Agent 1 (Bussiness Analyst):</strong> <span class="desc">Phân tích yêu cầu...</span>

@@ -16,6 +16,11 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // API Routes
 app.use('/api', orchestratorRoutes);
 
+// Serve report
+app.get('/report', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../report.html'));
+});
+
 app.listen(port, () => {
     console.log(`Vibe-Architect Server running at http://localhost:${port}`);
 });
