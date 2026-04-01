@@ -1,0 +1,28 @@
+erDiagram
+  Users {
+    int id PK
+    string username
+    string email
+    string role
+  }
+  Products {
+    int id PK
+    string name
+    float price
+    int stock
+  }
+  Orders {
+    int id PK
+    int user_id FK
+    float total
+    string status
+  }
+  OrderItems {
+    int id PK
+    int order_id FK
+    int product_id FK
+    int quantity
+  }
+  Users ||--o{ Orders : "places"
+  Orders ||--o{ OrderItems : "contains"
+  Products ||--o{ OrderItems : "included_in"

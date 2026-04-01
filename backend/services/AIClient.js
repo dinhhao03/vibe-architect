@@ -7,7 +7,6 @@ dotenv.config();
 const MODEL_CASCADE = [
     // --- Tier 1: Pro (Chất lượng cao nhất) ---
     { id: 'gemini-2.5-pro',             label: 'Gemini 2.5 Pro' },
-    { id: 'gemini-2.0-pro',             label: 'Gemini 2.0 Pro' },
     { id: 'gemini-1.5-pro',             label: 'Gemini 1.5 Pro' },
 
     // --- Tier 2: Flash (Nhanh, ổn định) ---
@@ -93,7 +92,18 @@ class AIClient {
                         errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED')
                     );
 
-                    if (isQuotaOrOverload && attempt < 2) {
+                    // Model không tồn tại → nhảy ngay, không retry
+                    const isModelNotFound = (
+                        e.status === 404 ||
+                        errStr.includes('not found') || errStr.includes('NOT_FOUND') ||
+                        errStr.includes('not supported')
+                    );
+
+                    if (isModelNotFound) {
+                        console.warn(`[AIClient] ⚠️ ${model.label} not available → Skipping to next...`);
+                        this.currentModelIndex = modelIdx + 1;
+                        break;
+                    } else if (isQuotaOrOverload && attempt < 2) {
                         // Retry cùng model sau delay
                         const waitSec = attempt * 3;
                         console.log(`[AIClient] Retrying ${model.label} in ${waitSec}s...`);
@@ -101,10 +111,10 @@ class AIClient {
                     } else if (isQuotaOrOverload) {
                         // Hết retry cho model này → chuyển sang model tiếp
                         console.warn(`[AIClient] ⚠️ ${model.label} exhausted → Cascading to next model...`);
-                        this.currentModelIndex = modelIdx + 1; // Ghi nhớ để các Agent sau dùng luôn model mới
-                        break; // Thoát vòng retry, vào vòng model tiếp
+                        this.currentModelIndex = modelIdx + 1;
+                        break;
                     } else {
-                        // Lỗi khác (API key sai, network...) → throw luôn
+                        // Lỗi nghiêm trọng (API key invalid 401/403) → throw
                         throw e;
                     }
                 }
@@ -152,23 +162,88 @@ class AIClient {
     }
 
     _getMockNode() {
+        const readme = [
+            "# E-Commerce Backend API",
+            "",
+            "RESTful API server sinh bởi **Vibe Architect** — AI Scaffolding Engine.",
+            "",
+            "## Quick Start",
+            "",
+            "```bash",
+            "# 1. Install dependencies",
+            "npm install",
+            "",
+            "# 2. Configure environment",
+            "cp .env.example .env",
+            "# Edit .env with your database credentials",
+            "",
+            "# 3. Setup database",
+            "psql -U postgres -f database/schema.sql",
+            "",
+            "# 4. Start server",
+            "npm start",
+            "```",
+            "",
+            "## API Endpoints",
+            "",
+            "| Method | Endpoint | Description |",
+            "|--------|----------|-------------|",
+            "| GET | `/api/products` | List all products |",
+            "| POST | `/api/products` | Create a product |",
+            "| GET | `/api/orders` | List all orders |",
+            "| POST | `/api/orders` | Create an order |",
+            "",
+            "## Project Structure",
+            "",
+            "```",
+            "├── src/",
+            "│   ├── app.js          # Express app setup & middleware",
+            "│   ├── server.js       # Server entry point",
+            "│   ├── db.js           # Database connection (pg Pool)",
+            "│   ├── controllers/    # Request handlers",
+            "│   ├── services/       # Business logic",
+            "│   └── routes/         # API route definitions",
+            "├── database/",
+            "│   └── schema.sql      # DDL for PostgreSQL",
+            "├── docs/",
+            "│   ├── SRS.md          # Software Requirements",
+            "│   └── ERD.mmd         # Mermaid ER Diagram",
+            "├── .env.example        # Environment template",
+            "└── package.json",
+            "```",
+            "",
+            "## Environment Variables",
+            "",
+            "| Variable | Default | Description |",
+            "|----------|---------|-------------|",
+            "| `PORT` | `3000` | Server port |",
+            "| `DATABASE_URL` | — | PostgreSQL connection string |",
+            "",
+            "## Tech Stack",
+            "",
+            "- **Runtime:** Node.js",
+            "- **Framework:** Express.js",
+            "- **Database:** PostgreSQL",
+            "- **Architecture:** MVC (Model-View-Controller)"
+        ].join("\\n");
+
         return {
-            readme: "# Mock Node.js Backend\n\n```bash\nnpm install\nnpm start\n```\n\nServer chạy tại http://localhost:3000",
-            dependencies: ["express", "cors", "dotenv"],
-            dbCode: "// Database connection placeholder\nconst pool = { query: async (sql) => ({ rows: [] }) };\nmodule.exports = pool;",
-            appCode: "const express = require('express');\nconst cors = require('cors');\nconst productRoutes = require('./routes/ProductRoute');\nconst orderRoutes = require('./routes/OrderRoute');\n\nconst app = express();\napp.use(cors());\napp.use(express.json());\napp.use('/api/products', productRoutes);\napp.use('/api/orders', orderRoutes);\n\nmodule.exports = app;",
-            serverCode: "const app = require('./app');\nconst PORT = process.env.PORT || 3000;\napp.listen(PORT, () => console.log(`Server running on port ${PORT}`));",
+            readme: readme,
+            dependencies: ["express", "cors", "dotenv", "pg"],
+            dbCode: "const { Pool } = require('pg');\\nrequire('dotenv').config();\\n\\nconst pool = new Pool({\\n  connectionString: process.env.DATABASE_URL,\\n});\\n\\npool.on('error', (err) => {\\n  console.error('Database pool error:', err);\\n});\\n\\nmodule.exports = {\\n  query: (text, params) => pool.query(text, params),\\n  pool\\n};",
+            appCode: "const express = require('express');\\nconst cors = require('cors');\\nrequire('dotenv').config();\\n\\nconst productRoutes = require('./routes/ProductRoute');\\nconst orderRoutes = require('./routes/OrderRoute');\\n\\nconst app = express();\\n\\n// Middleware\\napp.use(cors());\\napp.use(express.json());\\napp.use(express.urlencoded({ extended: true }));\\n\\n// Health check\\napp.get('/api/health', (req, res) => {\\n  res.json({ status: 'ok', timestamp: new Date().toISOString() });\\n});\\n\\n// Routes\\napp.use('/api/products', productRoutes);\\napp.use('/api/orders', orderRoutes);\\n\\n// 404 handler\\napp.use((req, res) => {\\n  res.status(404).json({ error: 'Route not found' });\\n});\\n\\n// Global error handler\\napp.use((err, req, res, next) => {\\n  console.error('[Error]', err.stack);\\n  res.status(err.status || 500).json({\\n    error: err.message || 'Internal Server Error'\\n  });\\n});\\n\\nmodule.exports = app;",
+            serverCode: "const app = require('./app');\\n\\nconst PORT = process.env.PORT || 3000;\\n\\nconst server = app.listen(PORT, () => {\\n  console.log(`Server running at http://localhost:${PORT}`);\\n  console.log(`Health check: http://localhost:${PORT}/api/health`);\\n});\\n\\n// Graceful shutdown\\nprocess.on('SIGTERM', () => {\\n  console.log('SIGTERM received. Shutting down...');\\n  server.close(() => process.exit(0));\\n});",
             controllers: [
-                { filename: "ProductController.js", code: "const db = require('../db');\n\nclass ProductController {\n  static async getAll(req, res) {\n    try {\n      const result = await db.query('SELECT * FROM Products');\n      res.json({ success: true, data: result.rows });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n  static async create(req, res) {\n    const { name, price, stock } = req.body;\n    try {\n      const result = await db.query('INSERT INTO Products (name, price, stock) VALUES ($1,$2,$3) RETURNING *', [name, price, stock]);\n      res.status(201).json({ success: true, data: result.rows[0] });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n}\nmodule.exports = ProductController;" },
-                { filename: "OrderController.js", code: "const db = require('../db');\n\nclass OrderController {\n  static async getAll(req, res) {\n    try {\n      const result = await db.query('SELECT * FROM Orders');\n      res.json({ success: true, data: result.rows });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n  static async create(req, res) {\n    const { user_id, total } = req.body;\n    try {\n      const result = await db.query('INSERT INTO Orders (user_id, total) VALUES ($1,$2) RETURNING *', [user_id, total]);\n      res.status(201).json({ success: true, data: result.rows[0] });\n    } catch (err) { res.status(500).json({ error: err.message }); }\n  }\n}\nmodule.exports = OrderController;" }
+                { filename: "ProductController.js", code: "const db = require('../db');\\nconst ProductService = require('../services/ProductService');\\n\\nclass ProductController {\\n  static async getAll(req, res, next) {\\n    try {\\n      const result = await db.query('SELECT * FROM Products ORDER BY id');\\n      res.json({ success: true, data: result.rows });\\n    } catch (err) { next(err); }\\n  }\\n\\n  static async getById(req, res, next) {\\n    try {\\n      const result = await db.query('SELECT * FROM Products WHERE id = $1', [req.params.id]);\\n      if (result.rows.length === 0) return res.status(404).json({ error: 'Product not found' });\\n      res.json({ success: true, data: result.rows[0] });\\n    } catch (err) { next(err); }\\n  }\\n\\n  static async create(req, res, next) {\\n    try {\\n      ProductService.validate(req.body);\\n      const { name, price, stock } = req.body;\\n      const result = await db.query(\\n        'INSERT INTO Products (name, price, stock) VALUES ($1, $2, $3) RETURNING *',\\n        [name, price, stock || 0]\\n      );\\n      res.status(201).json({ success: true, data: result.rows[0] });\\n    } catch (err) { next(err); }\\n  }\\n\\n  static async update(req, res, next) {\\n    try {\\n      const { name, price, stock } = req.body;\\n      const result = await db.query(\\n        'UPDATE Products SET name = COALESCE($1, name), price = COALESCE($2, price), stock = COALESCE($3, stock) WHERE id = $4 RETURNING *',\\n        [name, price, stock, req.params.id]\\n      );\\n      if (result.rows.length === 0) return res.status(404).json({ error: 'Product not found' });\\n      res.json({ success: true, data: result.rows[0] });\\n    } catch (err) { next(err); }\\n  }\\n\\n  static async delete(req, res, next) {\\n    try {\\n      const result = await db.query('DELETE FROM Products WHERE id = $1 RETURNING id', [req.params.id]);\\n      if (result.rows.length === 0) return res.status(404).json({ error: 'Product not found' });\\n      res.json({ success: true, message: 'Deleted' });\\n    } catch (err) { next(err); }\\n  }\\n}\\n\\nmodule.exports = ProductController;" },
+                { filename: "OrderController.js", code: "const db = require('../db');\\nconst OrderService = require('../services/OrderService');\\n\\nclass OrderController {\\n  static async getAll(req, res, next) {\\n    try {\\n      const result = await db.query('SELECT * FROM Orders ORDER BY created_at DESC');\\n      res.json({ success: true, data: result.rows });\\n    } catch (err) { next(err); }\\n  }\\n\\n  static async getById(req, res, next) {\\n    try {\\n      const result = await db.query('SELECT * FROM Orders WHERE id = $1', [req.params.id]);\\n      if (result.rows.length === 0) return res.status(404).json({ error: 'Order not found' });\\n      res.json({ success: true, data: result.rows[0] });\\n    } catch (err) { next(err); }\\n  }\\n\\n  static async create(req, res, next) {\\n    try {\\n      OrderService.validate(req.body);\\n      const { user_id, total } = req.body;\\n      const result = await db.query(\\n        'INSERT INTO Orders (user_id, total) VALUES ($1, $2) RETURNING *',\\n        [user_id, total]\\n      );\\n      res.status(201).json({ success: true, data: result.rows[0] });\\n    } catch (err) { next(err); }\\n  }\\n\\n  static async updateStatus(req, res, next) {\\n    try {\\n      const { status } = req.body;\\n      const result = await db.query(\\n        'UPDATE Orders SET status = $1 WHERE id = $2 RETURNING *',\\n        [status, req.params.id]\\n      );\\n      if (result.rows.length === 0) return res.status(404).json({ error: 'Order not found' });\\n      res.json({ success: true, data: result.rows[0] });\\n    } catch (err) { next(err); }\\n  }\\n}\\n\\nmodule.exports = OrderController;" }
             ],
             services: [
-                { filename: "ProductService.js", code: "class ProductService {\n  static validate(data) {\n    if (!data.name || data.price <= 0) throw new Error('Invalid product');\n    return true;\n  }\n}\nmodule.exports = ProductService;" },
-                { filename: "OrderService.js", code: "class OrderService {\n  static validate(data) {\n    if (!data.user_id) throw new Error('Missing user_id');\n    return true;\n  }\n}\nmodule.exports = OrderService;" }
+                { filename: "ProductService.js", code: "class ProductService {\\n  static validate(data) {\\n    if (!data.name || typeof data.name !== 'string') {\\n      const err = new Error('Product name is required');\\n      err.status = 400;\\n      throw err;\\n    }\\n    if (data.price === undefined || data.price <= 0) {\\n      const err = new Error('Price must be a positive number');\\n      err.status = 400;\\n      throw err;\\n    }\\n    return true;\\n  }\\n}\\n\\nmodule.exports = ProductService;" },
+                { filename: "OrderService.js", code: "class OrderService {\\n  static validate(data) {\\n    if (!data.user_id) {\\n      const err = new Error('user_id is required');\\n      err.status = 400;\\n      throw err;\\n    }\\n    if (data.total !== undefined && data.total < 0) {\\n      const err = new Error('Total cannot be negative');\\n      err.status = 400;\\n      throw err;\\n    }\\n    return true;\\n  }\\n}\\n\\nmodule.exports = OrderService;" }
             ],
             routes: [
-                { filename: "ProductRoute.js", code: "const router = require('express').Router();\nconst ProductController = require('../controllers/ProductController');\n\nrouter.get('/', ProductController.getAll);\nrouter.post('/', ProductController.create);\n\nmodule.exports = router;" },
-                { filename: "OrderRoute.js", code: "const router = require('express').Router();\nconst OrderController = require('../controllers/OrderController');\n\nrouter.get('/', OrderController.getAll);\nrouter.post('/', OrderController.create);\n\nmodule.exports = router;" }
+                { filename: "ProductRoute.js", code: "const router = require('express').Router();\\nconst ProductController = require('../controllers/ProductController');\\n\\nrouter.get('/', ProductController.getAll);\\nrouter.get('/:id', ProductController.getById);\\nrouter.post('/', ProductController.create);\\nrouter.put('/:id', ProductController.update);\\nrouter.delete('/:id', ProductController.delete);\\n\\nmodule.exports = router;" },
+                { filename: "OrderRoute.js", code: "const router = require('express').Router();\\nconst OrderController = require('../controllers/OrderController');\\n\\nrouter.get('/', OrderController.getAll);\\nrouter.get('/:id', OrderController.getById);\\nrouter.post('/', OrderController.create);\\nrouter.patch('/:id/status', OrderController.updateStatus);\\n\\nmodule.exports = router;" }
             ]
         };
     }
