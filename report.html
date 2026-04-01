@@ -309,7 +309,7 @@
     <!-- TRANG BÌA -->
     <!-- ============================== -->
     <div class="cover">
-        <div class="institution">Trường Đại học [Tên trường]</div>
+        <div class="institution">Trường Đại học Công nghệ Đồng Nai</div>
         <div class="department">Khoa Công nghệ Thông tin</div>
 
         <div class="report-type">Báo cáo Dự án Giữa kỳ</div>
@@ -318,13 +318,13 @@
 
         <table class="meta-table">
             <tr><td>Học phần:</td><td>Chuyên đề Phát triển Phần mềm</td></tr>
-            <tr><td>Giảng viên:</td><td>ThS. [Tên giảng viên]</td></tr>
-            <tr><td>Sinh viên:</td><td>Đinh Hào</td></tr>
-            <tr><td>MSSV:</td><td>[Mã số sinh viên]</td></tr>
-            <tr><td>Phiên bản:</td><td>v2.1 — Elite Edition</td></tr>
+            <tr><td>Giảng viên:</td><td>ThS. Phạm Đình Lâm</td></tr>
+            <tr><td>Sinh viên:</td><td>Nguyễn Đình Hào</td></tr>
+            <tr><td>MSSV:</td><td>1721031314</td></tr>
+            <tr><td>Khoá:</td><td>K17</td></tr>
         </table>
 
-        <div class="year">TP. Hồ Chí Minh, Tháng 04/2026</div>
+        <div class="year">Đồng Nai, Tháng 04/2026</div>
     </div>
 
     <!-- ============================== -->
@@ -434,28 +434,28 @@
             <pre>
 ┌─────────────────────────────────────────────────────────┐
 │                    FRONTEND (Browser)                   │
-│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐    │
-│  │  Input   │  │ Progress │  │  Multi-Tab Preview  │    │
-│  │  Panel   │  │  Tracker │  │ SRS│ERD│SQL│Code│DL │    │
-│  └──────────┘  └──────────┘  └────────────────────┘    │
+│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐     │
+│  │  Input   │  │ Progress │  │  Multi-Tab Preview │     │
+│  │  Panel   │  │  Tracker │  │ SRS│ERD│SQL│Code│DL│     │
+│  └──────────┘  └──────────┘  └────────────────────┘     │
 │                     ▲ SSE Stream                        │
 └─────────────────────┼───────────────────────────────────┘
                       │
 ┌─────────────────────┼───────────────────────────────────┐
 │              BACKEND│(Express.js)                       │
-│  ┌──────────────────┴──────────────────────┐            │
-│  │       OrchestratorController            │            │
-│  │  ┌──────┐  ┌──────────┐  ┌──────────┐  │            │
-│  │  │Agent1│→ │  Agent 2 │→ │  Agent 3 │  │            │
-│  │  │Analyst│ │ Architect│  │Developer │  │            │
-│  │  └──┬───┘  └────┬─────┘  └────┬─────┘  │            │
-│  │     │ SRS       │ SQL+ERD     │ Code   │            │
-│  └─────┼───────────┼─────────────┼────────┘            │
+│  ┌──────────────────┴─────────────────────┐             │
+│  │       OrchestratorController           │             │
+│  │  ┌──────┐  ┌──────────┐  ┌──────────┐  │             │
+│  │  │Agent1│→ │  Agent 2 │→ │  Agent 3 │  │             │
+│  │  │Analyst│ │ Architect│  │Developer │  │             │
+│  │  └──┬───┘  └────┬─────┘  └────┬─────┘  │             │
+│  │     │ SRS       │ SQL+ERD     │ Code   │             │
+│  └─────┼───────────┼─────────────┼────────┘             │
 │        ▼           ▼             ▼                      │
-│  ┌──────────┐ ┌──────────┐ ┌───────────────┐           │
-│  │ AIClient │ │  Cache   │ │ScaffoldFactory│           │
-│  │(Cascade) │ │  (MD5)   │ │  (ZIP Build)  │           │
-│  └──────────┘ └──────────┘ └───────────────┘           │
+│  ┌──────────┐ ┌──────────┐ ┌───────────────┐            │
+│  │ AIClient │ │  Cache   │ │ScaffoldFactory│            │
+│  │(Cascade) │ │  (MD5)   │ │  (ZIP Build)  │            │
+│  └──────────┘ └──────────┘ └───────────────┘            │
 │        │                                                │
 │  ┌─────┴────────────────────────────────┐               │
 │  │    Google Gemini API (8-Tier LLM)    │               │
@@ -463,7 +463,7 @@
 │  └──────────────────────────────────────┘               │
 └─────────────────────────────────────────────────────────┘
             </pre>
-            <div class="figure-caption">Hình 2.1 — Sơ đồ kiến trúc tổng quan hệ thống Vibe-Architect v2.1</div>
+            <div class="figure-caption">Hình 2.1 — Sơ đồ kiến trúc tổng quan hệ thống Vibe-Architect</div>
         </div>
 
         <h3>2.2 Multi-Agent Orchestration Pipeline</h3>
@@ -506,7 +506,7 @@
 
         <h3>2.3 Cascading LLM Architecture</h3>
         <p>
-            Để giải quyết vấn đề API hết hạn mức (quota) — rủi ro lớn nhất trong các buổi demo — hệ thống triển khai
+            Để giải quyết vấn đề API hết hạn mức (quota) — rủi ro lớn nhất về mặt vận hành và kết quả đạt được — hệ thống triển khai
             cơ chế <strong>8-Tier Cascading</strong>. Khi một model gặp lỗi 429 (Rate Limit) hoặc 503 (Overloaded),
             hệ thống tự động chuyển sang model tiếp theo mà không làm gián đoạn pipeline:
         </p>
@@ -821,7 +821,7 @@ e-commerce-platform/
 
         <h3>6.1 Kết luận</h3>
         <p>
-            Dự án <strong>Vibe-Architect v2.1</strong> đã đạt được toàn bộ mục tiêu đề ra: xây dựng thành công
+            Dự án <strong>Vibe-Architect</strong> đã đạt được toàn bộ mục tiêu đề ra: xây dựng thành công
             một công cụ AI Scaffolding Engine hoạt động ổn định, sinh mã nguồn Backend chất lượng cao theo chuẩn
             MVC, và đảm bảo tính sẵn sàng tuyệt đối cho mọi tình huống sử dụng.
         </p>
@@ -842,7 +842,7 @@ e-commerce-platform/
         </ol>
 
         <div class="alert alert-success">
-            <strong>Tóm lại:</strong> Vibe-Architect v2.1 không chỉ là một bài tập học thuật mà là một công cụ
+            <strong>Kết luận:</strong> Vibe-Architect không chỉ là một bài tập học thuật mà là một công cụ
             phát triển phần mềm thực thụ, thể hiện năng lực vận dụng AI Agentic Workflow vào giải quyết bài toán
             tự động hóa trong kỹ thuật phần mềm hiện đại.
         </div>
@@ -852,9 +852,9 @@ e-commerce-platform/
     <!-- FOOTER -->
     <!-- ============================== -->
     <div class="doc-footer">
-        <p><strong>Vibe-Architect (Scaffolding Engine) v2.1 — Elite Edition</strong></p>
-        <p>Sinh viên thực hiện: Đinh Hào | Học phần: Chuyên đề Phát triển Phần mềm</p>
-        <p>© 2026 — Tài liệu này được tạo phục vụ mục đích học thuật.</p>
+        <p><strong>Vibe-Architect (Scaffolding Engine)</strong></p>
+        <p>Sinh viên thực hiện: Nguyễn Đình Hào | Học phần: Chuyên đề Phát triển Phần mềm - Đề tài giữa kỳ</p>
+        <p>© 2026 — Báo cáo phục vụ mục đích học thuật.</p>
     </div>
 
 </div>
