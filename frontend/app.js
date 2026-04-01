@@ -71,8 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const root = document.documentElement;
         const newTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         root.setAttribute('data-theme', newTheme);
-        el.themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-        mermaid.initialize({ theme: newTheme }); // update mermaid theme
+        mermaid.initialize({ theme: newTheme });
     });
 
     // 4. Tabs
@@ -210,16 +209,16 @@ function startPipeline(isRefine) {
 function resetAgentUI() {
     Object.values(el.statusAgents).forEach(li => {
         li.className = 'waiting';
-        li.querySelector('.icon').textContent = '⏳';
+        li.querySelector('.icon').textContent = '○';
     });
 }
 function updateAgentUI(id, state) {
     const li = el.statusAgents[id];
     if(!li) return;
     li.className = state;
-    if (state === 'done') li.querySelector('.icon').textContent = '✅';
-    if (state === 'failed') li.querySelector('.icon').textContent = '❌';
-    if (state === 'working') li.querySelector('.icon').textContent = '⚙️';
+    if (state === 'done') li.querySelector('.icon').textContent = '●';
+    if (state === 'failed') li.querySelector('.icon').textContent = '✕';
+    if (state === 'working') li.querySelector('.icon').textContent = '◌';
 }
 
 function setProgress(percent, label) {

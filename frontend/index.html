@@ -3,154 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibe Architect - Smart AI Scaffolding Engine</title>
+    <title>Vibe Architect — AI Scaffolding Engine</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Mermaid.js for Live Preview ERD -->
+    <!-- Mermaid.js for ERD -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({startOnLoad: false, theme: 'dark'});</script>
-    <!-- Marked.js for Markdown render -->
+    <!-- Marked.js for Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Highlight.js for Syntax Coloring -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
 
-    <!-- Landing Page (Intro) -->
+    <!-- ==================== LANDING PAGE ==================== -->
     <div id="landingPage" class="landing-page active">
         <div class="landing-content">
-            <h1 class="landing-title">✨ Vibe Architect v2.0</h1>
-            <p class="landing-subtitle">Hệ sinh thái kiến trúc phần mềm AI chạy nội bộ (Local-Only).</p>
-            <p class="landing-desc">Chỉ cần đưa ý tưởng, Multi-Agent Orchestration sẽ sinh ra từ Tài liệu Yêu Cầu (SRS), Database (ERD, SQL) cho đến toàn bộ Kiến trúc Code Backend chuẩn MVC chỉ trong một nốt nhạc!</p>
-            <button id="getStartedBtn" class="btn-primary btn-large">Bắt đầu ngay 🚀</button>
+            <div class="landing-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+            </div>
+            <h1 class="landing-title">Vibe <span>Architect</span></h1>
+            <p class="landing-subtitle">AI-Powered Scaffolding Engine</p>
+            <p class="landing-desc">Biến ý tưởng thành kiến trúc Backend hoàn chỉnh. Multi-Agent AI phân tích, thiết kế database, và sinh mã nguồn MVC chuẩn production trong vài giây.</p>
+            <div class="landing-badges">
+                <span class="badge">Multi-Agent Pipeline</span>
+                <span class="badge">Real-time Streaming</span>
+                <span class="badge">MVC Architecture</span>
+                <span class="badge">Multi-Stack Support</span>
+            </div>
+            <button id="getStartedBtn" class="btn-primary btn-large">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                Bắt đầu thiết kế
+            </button>
         </div>
-        <!-- Vòng xoay động làm nền nhẹ -->
         <div class="background-anim"></div>
     </div>
 
-    <!-- Main Workspace (App) -->
+    <!-- ==================== MAIN WORKSPACE ==================== -->
     <div id="workspace" class="workspace hidden">
         <!-- HEADER -->
         <header class="app-header">
-            <div class="logo">✨ Vibe Architect</div>
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                </div>
+                Vibe Architect
+            </div>
             <div class="toolbar">
-                <button id="themeToggle" class="btn-icon" title="Sáng/Tối">☀️</button>
-                <button id="btnExportZip" class="btn-primary hidden">📥 Tải Full ZIP Artifacts</button>
+                <button id="themeToggle" class="btn-ghost" title="Toggle Theme">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                </button>
+                <button id="btnExportZip" class="btn-primary hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Export ZIP
+                </button>
             </div>
         </header>
 
         <div class="split-pane">
-            <!-- Cột trái: Điều khiển & Nhập liệu -->
+            <!-- ===== LEFT PANEL ===== -->
             <aside class="left-panel">
-                
-                <!-- History / Checkpoints -->
+                <!-- History -->
                 <section class="panel-section history-section">
-                    <h3>⏳ Lịch sử Checkpoints (Local)</h3>
-                    <ul id="historyList" class="history-list">
-                        <!-- JS Render -->
-                    </ul>
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        History
+                    </h3>
+                    <ul id="historyList" class="history-list"></ul>
                 </section>
 
                 <!-- Input Config -->
                 <section class="panel-section input-section">
                     <div class="form-group">
-                        <label for="presetSelect">📦 Mẫu dự án (Preset):</label>
+                        <label for="presetSelect">Preset Template</label>
                         <select id="presetSelect" class="input-modern">
-                            <option value="custom">-- Ý tưởng tùy biến --</option>
-                            <option value="ecommerce">🛒 Sàn Thương Mại Điện Tử</option>
-                            <option value="library">📚 Hệ Thống Quản Lý Thư Viện</option>
-                            <option value="taskmanager">✅ Ứng Dụng Quản Lý Công Việc</option>
-                            <option value="smarthome">🏠 Hệ Thống Quản Lý Smart Home</option>
-                            <option value="petcare">🐾 Ứng Dụng Chăm Sóc Thú Cưng</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group flex-row">
-                        <label for="techStack">Stack Backend:</label>
-                        <select id="techStack" class="input-modern w-full">
-                            <option value="Node.js">Node.js + Express (MVC)</option>
-                            <option value="Python Flask">🐍 Python + Flask (Blueprint)</option>
+                            <option value="custom">Custom — Nhập ý tưởng riêng</option>
+                            <option value="ecommerce">E-Commerce Platform</option>
+                            <option value="library">Library Management</option>
+                            <option value="taskmanager">Task Manager (Trello Clone)</option>
+                            <option value="smarthome">Smart Home System</option>
+                            <option value="petcare">Pet Care Application</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="prompt">💡 Tùy biến Yêu Cầu Dự Án:</label>
-                        <textarea id="prompt" class="input-modern" placeholder="Mô tả các yêu cầu, quy trình hoạt động, loại người dùng, chức năng chính... Càng chi tiết, AI code càng chuẩn!"></textarea>
+                        <label for="techStack">Backend Stack</label>
+                        <select id="techStack" class="input-modern">
+                            <option value="Node.js">Node.js + Express</option>
+                            <option value="Python Flask">Python + Flask</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prompt">Project Description</label>
+                        <textarea id="prompt" class="input-modern" placeholder="Mô tả yêu cầu dự án. VD: Hệ thống đặt lịch khám bệnh trực tuyến cho bệnh viện..."></textarea>
                     </div>
                 </section>
 
-                <!-- Action Toolbar -->
+                <!-- Actions -->
                 <section class="action-section">
-                    <button id="btnGenerate" class="btn-primary w-full">Thực thi Pipeline (Generate) ⚡</button>
-                    <div class="action-row mt-2">
-                        <button id="btnRefine" class="btn-secondary hidden" title="Sửa lại prompt và dồn context">Refine / Regenerate 🔄</button>
-                        <button id="btnReset" class="btn-danger w-full hidden">Khởi tạo lại 🗑️</button>
+                    <button id="btnGenerate" class="btn-primary w-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Generate Pipeline
+                    </button>
+                    <div class="action-row">
+                        <button id="btnRefine" class="btn-secondary hidden w-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                            Refine
+                        </button>
+                        <button id="btnReset" class="btn-danger w-full hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            Reset
+                        </button>
                     </div>
                 </section>
 
-                <!-- Multi-agent Status Tracker -->
-                <section id="statusPanel" class="panel-section status-section mt-4 hidden">
-                    <h3>🛠️ Tiến trình Agents Pipeline:</h3>
+                <!-- Agent Status -->
+                <section id="statusPanel" class="panel-section status-section hidden">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                        Pipeline Status
+                    </h3>
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar" style="width: 0%"></div>
                     </div>
-                    <p id="progressLabel" class="progress-label">0% — Đang khởi tạo...</p>
+                    <p id="progressLabel" class="progress-label">Initializing...</p>
                     <ul class="agent-list">
                         <li id="statusAgent1" class="waiting">
-                            <span class="icon">⏳</span> <strong>Agent 1 (Bussiness Analyst):</strong> <span class="desc">Phân tích yêu cầu...</span>
+                            <span class="icon">○</span> <strong>Analyst</strong> <span class="desc" style="color:var(--text-tertiary)">— SRS & Requirements</span>
                         </li>
                         <li id="statusAgent2" class="waiting">
-                            <span class="icon">⏳</span> <strong>Agent 2 (Data Architect):</strong> <span class="desc">Thiết kế ERD & Schema...</span>
+                            <span class="icon">○</span> <strong>Architect</strong> <span class="desc" style="color:var(--text-tertiary)">— ERD & SQL Schema</span>
                         </li>
                         <li id="statusAgent3" class="waiting">
-                            <span class="icon">⏳</span> <strong>Agent 3 (Backend Developer):</strong> <span class="desc">Dựng Database & Code MVC...</span>
+                            <span class="icon">○</span> <strong>Developer</strong> <span class="desc" style="color:var(--text-tertiary)">— MVC Backend Code</span>
                         </li>
                         <li id="statusValidator" class="waiting">
-                            <span class="icon">⏳</span> <strong>Validation Layer:</strong> <span class="desc">Kiểm tra tính toàn vẹn Data...</span>
+                            <span class="icon">○</span> <strong>Validator</strong> <span class="desc" style="color:var(--text-tertiary)">— Integrity Check & ZIP</span>
                         </li>
                     </ul>
                 </section>
             </aside>
 
-            <!-- Cột phải: Live Preview đa tab -->
+            <!-- ===== RIGHT PANEL (PREVIEW) ===== -->
             <main class="right-panel">
                 <div class="preview-header">
                     <div class="tabs">
-                        <button class="tab-btn active" data-target="tab-srs">📝 SRS</button>
-                        <button class="tab-btn" data-target="tab-erd">📊 ERD</button>
-                        <button class="tab-btn" data-target="tab-sql">💽 SQL Schema</button>
-                        <button class="tab-btn" data-target="tab-code">💻 Backend Scaffold</button>
-                        <button class="tab-btn" data-target="tab-readme">📖 README</button>
+                        <button class="tab-btn active" data-target="tab-srs">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            SRS
+                        </button>
+                        <button class="tab-btn" data-target="tab-erd">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+                            ERD
+                        </button>
+                        <button class="tab-btn" data-target="tab-sql">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                            SQL
+                        </button>
+                        <button class="tab-btn" data-target="tab-code">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                            Code
+                        </button>
+                        <button class="tab-btn" data-target="tab-readme">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                            README
+                        </button>
                     </div>
                     <div class="tab-actions">
-                        <button id="btnDownloadSingle" class="btn-outline">Tải Text File Tab Hiện Tại ⬇️</button>
+                        <button id="btnDownloadSingle" class="btn-outline">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            Download Tab
+                        </button>
                     </div>
                 </div>
 
                 <div class="preview-content">
                     <div id="tab-srs" class="tab-pane active markdown-body">
-                        <div class="empty-state">Chờ hệ thống phân tích Requirement (SRS)...</div>
+                        <div class="empty-state">Waiting for Agent 1 — SRS Analysis...</div>
                     </div>
                     <div id="tab-erd" class="tab-pane">
-                        <div id="mermaidViewer" class="mermaid">
-                            graph TD; A[Live ERD Preview] --> B(Đang rỗng);
-                        </div>
+                        <div id="mermaidViewer" class="mermaid">graph TD; A[ERD Preview] --> B(Waiting...);</div>
                     </div>
                     <div id="tab-sql" class="tab-pane code-body">
-                        <div class="empty-state">Chờ AI Data Architect đẻ SQL...</div>
+                        <div class="empty-state">Waiting for Agent 2 — SQL Schema...</div>
                     </div>
                     <div id="tab-code" class="tab-pane code-body">
-                        <div class="empty-state">Chờ AI Backend nhả Flow Controller...</div>
+                        <div class="empty-state">Waiting for Agent 3 — Backend Code...</div>
                     </div>
                     <div id="tab-readme" class="tab-pane markdown-body">
-                        <div class="empty-state">Chưa khởi tạo hướng dẫn chạy...</div>
+                        <div class="empty-state">Waiting for README generation...</div>
                     </div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- Application Script -->
     <script src="app.js"></script>
 </body>
 </html>
