@@ -2,10 +2,22 @@ const { GoogleGenAI } = require('@google/genai');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Danh sách Model ưu tiên: Pro → Flash → Mock
+// ===== CASCADING MODEL PRIORITY =====
+// Chiến lược: HẾT tất cả Pro → HẾT tất cả Flash → Lite → Mock (cuối cùng)
 const MODEL_CASCADE = [
-    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+    // --- Tier 1: Pro (Chất lượng cao nhất) ---
+    { id: 'gemini-2.5-pro',             label: 'Gemini 2.5 Pro' },
+    { id: 'gemini-2.0-pro',             label: 'Gemini 2.0 Pro' },
+    { id: 'gemini-1.5-pro',             label: 'Gemini 1.5 Pro' },
+
+    // --- Tier 2: Flash (Nhanh, ổn định) ---
+    { id: 'gemini-2.5-flash',           label: 'Gemini 2.5 Flash' },
+    { id: 'gemini-2.0-flash',           label: 'Gemini 2.0 Flash' },
+    { id: 'gemini-1.5-flash',           label: 'Gemini 1.5 Flash' },
+
+    // --- Tier 3: Lite (Nhẹ, tiết kiệm token) ---
+    { id: 'gemini-2.5-flash-lite',      label: 'Gemini 2.5 Flash Lite' },
+    { id: 'gemini-2.0-flash-lite',      label: 'Gemini 2.0 Flash Lite' },
 ];
 
 class AIClient {
