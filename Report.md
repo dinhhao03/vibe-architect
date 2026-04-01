@@ -1,76 +1,75 @@
-# BÁO CÁO DỰ ÁN GIỮA KỲ: VIBE ARCHITECT v2.1
-**Đề tài:** Local AI Scaffolding Engine (Agentic Workflow)
-**Mức độ hoàn thiện:** Production-Ready MVP (10/10)
+# BÁO CÁO DỰ ÁN GIỮA KỲ
+**Đề tài:** Vibe-Architect — Local AI Scaffolding Engine (Agentic Workflow)
+**Phiên bản:** v2.1 Elite Edition
+
+> Xem bản trình bày đầy đủ (HTML/PDF): Mở file `report.html` hoặc truy cập `http://localhost:3000/report`
 
 ---
 
-## 1. 🚀 TỔNG QUAN (PRODUCT OVERVIEW)
+## Chương 1: Giới thiệu đề tài
 
-**Vibe Architect** là một công cụ kiến trúc phần mềm (Scaffolding Engine) tiên tiến, áp dụng mô hình **Multi-Agent Orchestration** (Điều phối Đa tác vụ AI). Hệ thống biến ý tưởng (Prompt) thành mã nguồn Backend chất lượng cao (Node.js/Flask), sơ đồ thực thể (ERD), và đặc tả yêu cầu (SRS) chỉ trong vài chục giây.
+### 1.1 Bối cảnh
+Giai đoạn scaffolding (khởi tạo cấu trúc dự án) chiếm 20–30% thời gian phát triển MVP. Các giải pháp AI hiện tại (ChatGPT, Copilot) hoạt động theo mô hình single-shot, dễ gây hallucination và thiếu nhất quán giữa database schema và logic code.
 
-### 1.1 Mục tiêu chính
--   **Đóng gói kiến trúc:** Tạo ra boilerplate chuẩn MVC theo yêu cầu nghiệp vụ cụ thể.
--   **Độ tin cậy tối ưu:** Đảm bảo hệ thống luôn hoạt động (100% uptime) trong các phiên Demo quan trọng nhờ cơ chế Cascading LLM và Response Cache.
--   **Trải nghiệm Premium:** Giao diện chuyên nghiệp, trực quan, hỗ trợ xem trước (Preview) đa dạng.
+### 1.2 Mục tiêu
+1. Tự động hóa scaffolding bằng AI Agentic Workflow (Multi-Agent Pipeline).
+2. Đảm bảo 100% uptime với Cascading LLM + Response Cache.
+3. Hỗ trợ đa nền tảng: Node.js (Express) và Python (Flask).
+
+### 1.3 Phạm vi
+Hệ thống chạy trên localhost, nhận prompt → xuất ra ZIP chứa mã nguồn MVC, SRS, ERD, SQL Schema.
 
 ---
 
-## 2. 🏛️ KIẾN TRÚC HỆ THỐNG (TECHNICAL ARCHITECTURE)
+## Chương 2: Phân tích và thiết kế
 
-### 2.1 Multi-Agent Pipeline (Agentic Workflow)
-Hệ thống thoát khỏi tư duy "nhả code một lần" dễ gây sai sót, thay vào đó chia nhỏ quy trình tư duy:
--   **Agent 1 (Business Analyst):** Phân tích ngữ nghĩa để trích xuất User Stories & SRS.
--   **Agent 2 (Data Architect):** Thiết kế Database Schema (SQL) & ERD Mermaid từ SRS.
--   **Agent 3 (Backend Developer):** Sinh mã nguồn (Controllers, Routes, Services) dựa trên Schema & SRS.
+### 2.1 Multi-Agent Pipeline
+| Agent | Vai trò | Đầu vào | Đầu ra |
+|:---|:---|:---|:---|
+| Agent 1 (Analyst) | Phân tích nghiệp vụ | Prompt | SRS, User Stories |
+| Agent 2 (Architect) | Thiết kế database | SRS | SQL DDL, ERD Mermaid |
+| Agent 3 (Developer) | Viết mã nguồn MVC | SRS + SQL | Controllers, Services, Routes |
 
-### 2.2 Cascading LLM & Model Tiering
-Cơ chế **8-Tier Cascading** giúp hệ thống tự động hạ cấp model khi gặp lỗi Quota (429) hoặc Busy (503):
-1.  **Tier 1 — PRO:** `Gemini 2.5 Pro` (Mạnh nhất) → `Gemini 1.5 Pro`.
-2.  **Tier 2 — FLASH:** `Gemini 2.5 Flash` → `Gemini 2.0 Flash` → `Gemini 1.5 Flash`.
-3.  **Tier 3 — LITE:** `Gemini 2.5 Flash Lite` → `Gemini 2.0 Flash Lite`.
-4.  **Tier 4 — LOCAL MOCK:** Dữ liệu mẫu chuẩn hóa (Luôn hoạt động).
+### 2.2 Cascading LLM (8 Tầng)
+`2.5 Pro → 1.5 Pro → 2.5 Flash → 2.0 Flash → 1.5 Flash → 2.5 Lite → 2.0 Lite → Local Mock`
 
 ### 2.3 Response Cache & Multi-Key Rotation
--   **MD5 Caching:** Mã hóa tổ hợp Prompt thành mã băm, lưu kết quả thành công vào thư mục `.cache/`. Lần chạy sau cùng nội dung sẽ tải **tức thì (0ms)**.
--   **Key Rotation:** Hỗ trợ cấu hình tối đa **10 API Key** trong file `.env`, tự động luân phiên khi key hiện tại hết hạn mức.
+- **Cache:** MD5 hash prompt → lưu `.cache/` → 0ms khi demo lại.
+- **Key Rotation:** Hỗ trợ tối đa 10 API key luân phiên.
 
 ---
 
-## 3. 🎨 THIẾT KẾ GIAO DIỆN (UI/UX DESIGN)
-
-Hệ thống được thiết kế theo phong cách **Premium Dark Theme** (Zinc palette):
--   **Lucide Icons:** Sử dụng bộ icon SVG chuyên nghiệp (Computer, Database, Document) thay thế emoji.
--   **Progress Feedback:** Thanh tiến trình gradient chạy mượt mà kèm trạng thái chi tiết của từng Agent.
--   **Multi-Tab Preview:** Tích hợp Mermaid render (vẽ ERD), Highlight.js (tô màu code), và Marked (render markdown).
+## Chương 3: Công nghệ sử dụng
+- **Backend:** Node.js, Express.js, @google/genai, Archiver, dotenv, cors
+- **Frontend:** Vanilla HTML/CSS/JS, Mermaid.js, Highlight.js, Marked.js, Lucide Icons
+- **AI:** Google Gemini API (7 model + Local Mock), SSE streaming
 
 ---
 
-## 4. 📂 ĐÁNH GIÁ CHẤT LƯỢNG OUTPUT (ZIP QUALITY)
-
-Cấu trúc ZIP xuất ra đạt chuẩn Production-ready:
-1.  **Tính đầy đủ:** Có `.env.example`, `package.json` (kèm dev script), `README.md` hướng dẫn chi tiết.
-2.  **Tính nghiệp vụ:** Mã nguồn triển khai đầy đủ các lớp (Controller → Service → DB).
-3.  **Tính an toàn:** Hỗ trợ SQL Transactions (BEGIN/COMMIT/ROLLBACK) và Parameterized Queries chống SQL Injection.
-4.  **Đa nền tảng:** Lựa chọn linh hoạt giữa **Node.js (Express)** và **Python (Flask)**.
+## Chương 4: Cách thực hiện
+- **OrchestratorController:** Điều phối pipeline 3 Agent qua SSE.
+- **AIClient:** Cascading logic + MD5 Cache + Key Rotation.
+- **ScaffoldFactory:** Đóng gói ZIP động cho cả Node.js và Flask.
+- **Frontend:** Zinc Dark Premium UI, Multi-Tab Preview, Progress Tracker.
 
 ---
 
-## 5. 🧪 KẾT QUẢ KIỂM THỬ (TESTING REPORT)
-
-| Tính năng | Trạng thái | Ghi chú |
-| :--- | :--- | :--- |
-| **Generative Streaming** | ✅ Đạt | SSE Event truyền tải mượt mà. |
-| **Cascading Logic** | ✅ Đạt | Tự nhảy model khi gặp lỗi Quota/404. |
-| **Multi-Key Rotation** | ✅ Đạt | Đổi API key thành công khi key cũ đạt giới hạn. |
-| **Response Cache** | ✅ Đạt | Load kết quả cũ trong 0ms khi demo lại. |
-| **Export ZIP** | ✅ Đạt | Cấu trúc chuẩn MVC, chạy được ngay. |
-| **UI/UX Design** | ✅ Đạt | Phong cách Premium Zinc Dark hiện đại. |
+## Chương 5: Kết quả đạt được
+| Test Case | Kết quả |
+|:---|:---|
+| SSE Streaming | ✅ PASSED |
+| Context Sharing (Agent Chain) | ✅ PASSED |
+| Cascading LLM (429/503/404) | ✅ PASSED |
+| Response Cache (0ms) | ✅ PASSED |
+| Multi-Key Rotation | ✅ PASSED |
+| Validation Fallback | ✅ PASSED |
+| ZIP Quality (MVC chuẩn) | ✅ PASSED |
+| Multi-Stack (Node/Flask) | ✅ PASSED |
 
 ---
 
-## 6. 🏁 TỔNG KẾT
-Dự án **Vibe Architect v2.1** không chỉ là một bài tập môn học, mà là một công cụ thực thụ được tối ưu cho các buổi trình diễn quan trọng. Với khả năng tự động hóa 90% quy trình thiết lập dự án ban đầu, đây là một minh chứng mạnh mẽ cho ứng dụng của **AI Agentic Workflow** trong phát triển phần mềm hiện đại.
+## Chương 6: Kết luận
+Vibe-Architect v2.1 đạt toàn bộ mục tiêu đề ra: AI Scaffolding Engine ổn định, mã nguồn chất lượng cao, 100% uptime. Hướng phát triển: thêm Django/Spring Boot, Custom Templates, Unit Test Generation, Docker Integration.
 
-**Giảng viên:** Thầy [Tên Giảng Viên]
-**Sinh viên thực hiện:** Đinh Hào
-**Điểm mong muốn:** 10/10 (Tuyệt đối)
+---
+**Sinh viên:** Đinh Hào | **Học phần:** Chuyên đề Phát triển Phần mềm | **Năm:** 2026
