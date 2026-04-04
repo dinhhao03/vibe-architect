@@ -1,26 +1,43 @@
+'use strict';
+
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const dotenv = require('dotenv');
-const orchestratorRoutes = require('./controllers/OrchestratorController');
-
-dotenv.config();
+const orchestrator = require('./controllers/OrchestratorController');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || true,
+}));
+app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// API Routes
-app.use('/api', orchestratorRoutes);
+app.use('/api', orchestrator);
 
-// Serve report
-app.get('/report', (req, res) => {
+app.get('/report', (_req, res) => {
     res.sendFile(path.resolve(__dirname, '../report.html'));
 });
 
-app.listen(port, () => {
-    console.log(`Vibe-Architect Server running at http://localhost:${port}`);
+app.get('/*splat', (_req, res) => {
+    res.sendFile(path.resolve(__dirname, '../frontend/index.html'));
 });
+
+const server = app.listen(PORT, () => {
+    console.log(`\n  Vibe Architect -> http://localhost:${PORT}\n`);
+});
+
+const shutdown = signal => () => {
+    console.log(`\n[Server] ${signal} received - shutting down gracefully`);
+    server.close(() => {
+        console.log('[Server] Closed.');
+        process.exit(0);
+    });
+};
+
+process.on('SIGTERM', shutdown('SIGTERM'));
+process.on('SIGINT', shutdown('SIGINT'));
+
+module.exports = app;

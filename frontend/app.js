@@ -1,4 +1,5 @@
-// --- DOM ELEMENTS ---
+﻿'use strict';
+
 const el = {
     landing: document.getElementById('landingPage'),
     btnStart: document.getElementById('getStartedBtn'),
@@ -11,354 +12,628 @@ const el = {
     btnReset: document.getElementById('btnReset'),
     statusPanel: document.getElementById('statusPanel'),
     historyList: document.getElementById('historyList'),
+    btnClearHistory: document.getElementById('btnClearHistory'),
     tabBtns: document.querySelectorAll('.tab-btn'),
     tabPanes: document.querySelectorAll('.tab-pane'),
     btnExportZip: document.getElementById('btnExportZip'),
-    btnDownloadSingle: document.getElementById('btnDownloadSingle'),
+    btnDownload: document.getElementById('btnDownloadSingle'),
     themeToggle: document.getElementById('themeToggle'),
     progressBar: document.getElementById('progressBar'),
     progressLabel: document.getElementById('progressLabel'),
-    statusAgents: {
+    agents: {
         1: document.getElementById('statusAgent1'),
         2: document.getElementById('statusAgent2'),
         3: document.getElementById('statusAgent3'),
-        v: document.getElementById('statusValidator')
-    }
+        v: document.getElementById('statusValidator'),
+    },
 };
 
-// --- GLOBAL STATE ---
-let currentSessionData = {
-    id: null,
-    prompt: '',
-    srs: '',
-    erd: '',
-    sql: '',
-    code: '',
-    readme: '',
-    timestamp: null
-};
-
+const HISTORY_KEY = 'vibe_history';
+const MAX_HISTORY = 10;
 const PRESETS = {
     custom: '',
-    ecommerce: 'Xây dựng sàn thương mại điện tử: người dùng có thể mua hàng, đưa đồ vào giỏ, thanh toán. Quản trị viên có thể thêm bớt sản phẩm, xem đơn hàng.',
-    library: 'Hệ thống quản lý thư viện: Thủ thư có thể thêm sách, quản lý độc giả mượn/trả sách. Tính phí phạt nếu quá hạn.',
-    taskmanager: 'Ứng dụng quản lý công việc (Trello clone): User tạo Bảng, Cột, Thẻ. Assign việc cho nhau, comment và set Deadline.',
-    smarthome: 'Hệ thống Smart Home Backend: Cho phép thiết lập các thiết bị (Đèn, Điều hòa), tạo Ngữ cảnh (Scene) để tự động bật tắt theo giờ, lưu lịch sử thiết bị.',
-    petcare: 'Web app chăm sóc thú cưng: Người dùng đặt lịch khám thú y, theo dõi hồ sơ thú cưng, lịch tiêm chủng, và mua thức ăn lưu giỏ hàng.'
+    ecommerce: 'Xây dựng sàn thương mại điện tử: người dùng đăng ký, đăng nhập, duyệt sản phẩm, thêm vào giỏ hàng và thanh toán. Admin quản lý sản phẩm, đơn hàng và người dùng.',
+    library: 'Hệ thống quản lý thư viện: thủ thư quản lý sách, độc giả và lịch sử mượn trả. Tính phí phạt nếu trả quá hạn. Hỗ trợ tìm kiếm sách theo tên và tác giả.',
+    taskmanager: 'Ứng dụng quản lý công việc theo phong cách Trello: người dùng tạo Board, Column và Card. Gán thành viên vào task, comment, đặt deadline và theo dõi tiến độ.',
+    smarthome: 'Smart Home Backend: quản lý các thiết bị IoT, tạo Scene tự động kích hoạt theo lịch hoặc điều kiện, lưu log lịch sử hoạt động.',
+    petcare: 'Ứng dụng chăm sóc thú cưng: đặt lịch khám thú y, lưu hồ sơ thú cưng, nhắc lịch tiêm chủng và tẩy giun, mua thức ăn và phụ kiện.',
 };
 
-// --- INITIALIZATION ---
+const EMPTY_STATES = {
+    srs: iconEmpty('file-search', 'Waiting for Agent 1 - SRS analysis...'),
+    sql: iconEmpty('database-backup', 'Waiting for Agent 2 - SQL schema...'),
+    dbml: iconEmpty('scroll-text', 'Waiting for DBML generation...'),
+    code: iconEmpty('binary', 'Waiting for Agent 3 - backend code...'),
+    readme: iconEmpty('notebook-tabs', 'Waiting for README generation...'),
+    processing: iconEmpty('loader-circle', 'Đang xử lý pipeline...'),
+    noData: iconEmpty('inbox', 'Không có dữ liệu.'),
+};
+
+let session = createEmptySession();
+let eventSource = null;
+let pipelineWarning = null;
+
+function createEmptySession() {
+    return {
+        id: null,
+        prompt: '',
+        srs: '',
+        erd: '',
+        sql: '',
+        dbml: '',
+        code: '',
+        readme: '',
+        isFlask: false,
+        timestamp: null,
+    };
+}
+
+function iconEmpty(icon, text) {
+    return `<div class="empty-state"><i data-lucide="${icon}"></i><p>${escapeHtml(text)}</p></div>`;
+}
+
+function refreshIcons() {
+    if (window.lucide?.createIcons) {
+        window.lucide.createIcons();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Landing Page
+    refreshIcons();
+
     el.btnStart.addEventListener('click', () => {
         el.landing.style.opacity = '0';
         setTimeout(() => {
             el.landing.classList.add('hidden');
             el.workspace.classList.remove('hidden');
             loadHistory();
+            refreshIcons();
         }, 500);
     });
 
-    // 2. Presets
-    el.preset.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (PRESETS[val]) el.prompt.value = PRESETS[val];
-        else el.prompt.value = '';
+    el.preset.addEventListener('change', event => {
+        el.prompt.value = PRESETS[event.target.value] ?? '';
     });
 
-    // 3. Theme Toggle
     el.themeToggle.addEventListener('click', () => {
-        const root = document.documentElement;
-        const newTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        root.setAttribute('data-theme', newTheme);
-        mermaid.initialize({ theme: newTheme });
+        const nextTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        mermaid.initialize({ startOnLoad: false, theme: nextTheme });
+        if (session.erd) renderMermaid();
     });
 
-    // 4. Tabs
-    el.tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            el.tabBtns.forEach(b => b.classList.remove('active'));
-            el.tabPanes.forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            const target = btn.getAttribute('data-target');
-            document.getElementById(target).classList.add('active');
-            
-            // Re-render mermaid if tab is ERD
-            if (target === 'tab-erd' && currentSessionData.erd) {
-                renderMermaid();
-            }
+    el.tabBtns.forEach(button => {
+        button.addEventListener('click', () => {
+            el.tabBtns.forEach(item => item.classList.remove('active'));
+            el.tabPanes.forEach(item => item.classList.remove('active'));
+            button.classList.add('active');
+            const target = button.getAttribute('data-target');
+            document.getElementById(target)?.classList.add('active');
+            if (target === 'tab-erd' && session.erd) renderMermaid();
+            refreshIcons();
         });
     });
 
-    // 5. Buttons
     el.btnGen.addEventListener('click', () => startPipeline(false));
-    el.btnRefine.addEventListener('click', () => startPipeline(true)); // Regenerate with dồn context
+    el.btnRefine.addEventListener('click', () => startPipeline(true));
     el.btnReset.addEventListener('click', resetWorkspace);
-    el.btnDownloadSingle.addEventListener('click', downloadSingleArtifact);
-    el.btnExportZip.addEventListener('click', downloadFullZip);
+    el.btnClearHistory.addEventListener('click', clearHistory);
+    el.btnDownload.addEventListener('click', downloadActiveTab);
+    el.btnExportZip.addEventListener('click', downloadZip);
 });
-
-// --- CORE PIPELINE (SSE) ---
-let eventSource = null;
 
 function startPipeline(isRefine) {
     const rawPrompt = el.prompt.value.trim();
     if (!rawPrompt) {
-        alert("Vui lòng nhập Prompt mô tả dự án!");
+        alert('Vui lòng nhập mô tả dự án.');
         return;
     }
 
-    // Nếu Refine => Gộp Prompt cũ và mới
-    const finalPrompt = isRefine ? `[LỊCH SỬ DỰ ÁN CŨ]:\n${currentSessionData.prompt}\n\n[BỔ SUNG/SỬA ĐỔI MỚI]:\n${rawPrompt}` : rawPrompt;
+    const finalPrompt = isRefine
+        ? `[DỰ ÁN CŨ]\n${session.prompt}\n\n[YÊU CẦU BỔ SUNG / CHỈNH SỬA]\n${rawPrompt}`
+        : rawPrompt;
 
-    // Reset UI
     clearPreviews();
     el.statusPanel.classList.remove('hidden');
     resetAgentUI();
     setProgress(0, 'Đang khởi tạo pipeline...');
-    toggleButtons(true);
-    
-    // Init state
-    currentSessionData = {
-        id: 'chk_' + Date.now(),
+    setWorking(true);
+    pipelineWarning = null;
+
+    session = {
+        ...createEmptySession(),
+        id: `sess_${Date.now()}`,
         prompt: finalPrompt,
-        timestamp: new Date().toLocaleString()
+        timestamp: new Date().toLocaleString('vi-VN'),
     };
 
-    // Open connection
-    const tech = el.techStack.value;
-    const url = `/api/generate?prompt=${encodeURIComponent(finalPrompt)}&tech=${encodeURIComponent(tech)}`;
+    eventSource?.close();
+    const stack = el.techStack.value;
+    const url = `/api/generate?prompt=${encodeURIComponent(finalPrompt)}&stack=${encodeURIComponent(stack)}`;
     eventSource = new EventSource(url);
 
-    eventSource.addEventListener('progress', (e) => {
-        const data = JSON.parse(e.data);
-        console.log("Progress:", data.message);
-        
-        // Progress bar update
-        const stepMap = { 1: 25, 2: 50, 3: 75, 4: 100 };
-        if (data.step) setProgress(stepMap[data.step] || 0, data.message);
+    eventSource.addEventListener('progress', event => {
+        const { step, message } = JSON.parse(event.data);
+        const progress = { 1: 18, 2: 42, 3: 68, 4: 90 }[step] ?? 0;
+        setProgress(progress, message);
 
-        // Agent status icons
-        if (data.message.includes('Agent 1')) updateAgentUI(1, 'working');
-        else if (data.message.includes('Agent 2')) { updateAgentUI(1, 'done'); updateAgentUI(2, 'working'); }
-        else if (data.message.includes('Agent 3')) { updateAgentUI(2, 'done'); updateAgentUI(3, 'working'); }
-        else if (data.message.includes('hoàn tất') || data.message.includes('đóng gói')) { updateAgentUI(3, 'done'); updateAgentUI('v', 'working'); }
+        if (step === 1) updateAgent(1, 'working');
+        if (step === 2) {
+            updateAgent(1, 'done');
+            updateAgent(2, 'working');
+        }
+        if (step === 3) {
+            updateAgent(2, 'done');
+            updateAgent(3, 'working');
+        }
+        if (step === 4) {
+            updateAgent(3, 'done');
+            updateAgent('v', 'working');
+        }
     });
 
-    eventSource.addEventListener('srs_ready', (e) => {
-        const data = JSON.parse(e.data);
-        const stories = data.userStories || [];
-        const md = `# Overview\n${data.projectOverview}\n\n## User Stories\n${stories.map(u => `- **${u.id} - ${u.title}**: ${u.story}`).join('\n')}`;
-        currentSessionData.srs = md;
-        document.getElementById('tab-srs').innerHTML = marked.parse(md);
+    eventSource.addEventListener('warning', event => {
+        pipelineWarning = JSON.parse(event.data).message ?? null;
     });
 
-    eventSource.addEventListener('db_ready', (e) => {
-        const data = JSON.parse(e.data);
-        currentSessionData.erd = data.erd;
-        currentSessionData.sql = data.sql;
+    eventSource.addEventListener('srs_ready', event => {
+        const data = JSON.parse(event.data);
+        session.isFlask = data.isFlask === true;
+
+        const stories = (data.userStories ?? []).map(userStory => {
+            const acceptanceCriteria = (userStory.acceptanceCriteria ?? []).map(item => `- ${item}`).join('\n');
+            return `### ${userStory.id} - ${userStory.title}\n\n${userStory.story}\n\n${acceptanceCriteria}`;
+        }).join('\n\n');
+
+        session.srs = `# ${data.projectName}\n\n> ${data.projectOverview}\n\n## User Stories\n\n${stories}`;
+        setTabContent('tab-srs', renderMarkdownSafe(session.srs));
+    });
+
+    eventSource.addEventListener('db_ready', event => {
+        const data = JSON.parse(event.data);
+        session.sql = data.sql ?? '';
+        session.dbml = data.dbml ?? '';
+        session.erd = buildMermaidFromJSON(data.db_structure);
         renderMermaid();
-        const safeSql = data.sql ? data.sql.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-        document.getElementById('tab-sql').innerHTML = safeSql;
+
+        if (session.sql) {
+            const highlighted = hljs.highlight(session.sql, { language: 'sql' }).value;
+            setTabContent('tab-sql', `<pre><code class="hljs language-sql">${highlighted}</code></pre>`);
+        }
+
+        if (session.dbml) {
+            setTabContent('tab-dbml', `<pre class="code-body">${escapeHtml(session.dbml)}</pre>`);
+        }
     });
 
-    eventSource.addEventListener('backend_ready', (e) => {
-        const data = JSON.parse(e.data);
-        let previewCode = `/* --- src/server.js --- */\n${data.serverCode || ''}\n\n/* --- src/app.js --- */\n${data.appCode || ''}\n\n/* --- src/db.js --- */\n${data.dbCode || ''}\n\n`;
-        
-        ['controllers', 'services', 'routes'].forEach(folder => {
-            if(Array.isArray(data[folder])) {
-                data[folder].forEach(f => {
-                    previewCode += `/* --- src/${folder}/${f.filename} --- */\n${f.code}\n\n`;
-                });
-            }
-        });
+    eventSource.addEventListener('backend_ready', event => {
+        const data = JSON.parse(event.data);
+        session.readme = data.readme ?? '';
+        session.code = buildCodePreview(data);
+        session.isFlask = data.isFlask === true;
 
-        currentSessionData.code = previewCode.trim();
-        currentSessionData.readme = data.readme || "# Vibe-Architect Generated Code";
-        
-        // Syntax Highlighting
-        const lang = el.techStack.value.includes('Python') ? 'python' : 'javascript';
-        const highlighted = hljs.highlight(currentSessionData.code, { language: lang }).value;
-        document.getElementById('tab-code').innerHTML = `<pre><code class="hljs">${highlighted}</code></pre>`;
-        document.getElementById('tab-readme').innerHTML = marked.parse(currentSessionData.readme);
+        const language = session.isFlask ? 'python' : 'javascript';
+        try {
+            const highlighted = hljs.highlight(session.code, { language }).value;
+            setTabContent('tab-code', `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`);
+        } catch {
+            setTabContent('tab-code', `<pre><code>${escapeHtml(session.code)}</code></pre>`);
+        }
+
+        setTabContent('tab-readme', renderMarkdownSafe(session.readme));
     });
 
-    eventSource.addEventListener('complete', (e) => {
-        const data = JSON.parse(e.data);
-        updateAgentUI('v', 'done');
-        setProgress(100, '✅ Pipeline hoàn tất!');
-        toggleButtons(false);
+    eventSource.addEventListener('complete', event => {
+        const data = JSON.parse(event.data);
+        updateAgent('v', 'done');
+        setProgress(100, `Pipeline hoàn tất. Project ZIP đã sẵn sàng.${pipelineWarning ? ' Cảnh báo: pipeline đang dùng mock mode.' : ''}`);
+        setWorking(false);
         el.btnExportZip.classList.remove('hidden');
-        el.btnExportZip.setAttribute('data-url', data.downloadUrl);
-        saveCheckpoint();
+        el.btnExportZip.dataset.url = data.downloadUrl;
+        el.btnExportZip.dataset.usedMock = String(Boolean(data.usedMock));
+        saveSession();
         eventSource.close();
     });
 
-    eventSource.addEventListener('error', (e) => {
-        updateAgentUI('v', 'failed');
-        let errData = { message: "Unknown Error" };
-        try { errData = JSON.parse(e.data); } catch(ex){}
-        alert("❌ Lỗi Pipeline: " + errData.message);
-        toggleButtons(false);
+    eventSource.addEventListener('error', event => {
+        updateAgent('v', 'failed');
+        let message = 'Lỗi không xác định';
+        try {
+            message = JSON.parse(event.data).message;
+        } catch {
+            message = 'Không thể kết nối tới pipeline.';
+        }
+        setProgress(0, `Lỗi: ${message}`);
+        alert(`Pipeline thất bại:\n${message}`);
+        setWorking(false);
         eventSource.close();
     });
 }
 
-// --- UI HELPERS ---
-function resetAgentUI() {
-    Object.values(el.statusAgents).forEach(li => {
-        li.className = 'waiting';
-        li.querySelector('.icon').textContent = '○';
+function buildMermaidFromJSON(data) {
+    if (!data?.tables?.length) return 'erDiagram\n  _empty_ {\n  }\n';
+
+    let output = 'erDiagram\n';
+    data.tables.forEach(table => {
+        output += `  ${sanitizeMermaidId(table.name)} {\n`;
+        (table.columns ?? []).forEach(column => {
+            output += `    ${sanitizeMermaidType(column.type ?? 'string')} ${sanitizeMermaidId(column.name)}\n`;
+        });
+        output += '  }\n';
     });
-}
-function updateAgentUI(id, state) {
-    const li = el.statusAgents[id];
-    if(!li) return;
-    li.className = state;
-    if (state === 'done') li.querySelector('.icon').textContent = '●';
-    if (state === 'failed') li.querySelector('.icon').textContent = '✕';
-    if (state === 'working') li.querySelector('.icon').textContent = '◌';
+
+    (data.relationships ?? []).forEach(relationship => {
+        if (!relationship.from || !relationship.to || !relationship.type) return;
+        const label = relationship.label ? ` : "${relationship.label}"` : '';
+        output += `  ${sanitizeMermaidId(relationship.from)} ${relationship.type} ${sanitizeMermaidId(relationship.to)}${label}\n`;
+    });
+
+    return output;
 }
 
-function setProgress(percent, label) {
-    if (el.progressBar) el.progressBar.style.width = percent + '%';
-    if (el.progressLabel) el.progressLabel.textContent = `${percent}% — ${label}`;
+function sanitizeMermaidId(value) {
+    return (value ?? 'unknown').replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
-function clearPreviews() {
-    document.querySelectorAll('.tab-pane').forEach(p => p.innerHTML = '<div class="empty-state">Đang chờ Dữ liệu...</div>');
-    document.getElementById('tab-erd').innerHTML = `<div id="mermaidViewer" class="mermaid">graph TD; A[Loading] --> B(Đang vẽ...);</div>`;
+function sanitizeMermaidType(value) {
+    return (value ?? 'string')
+        .replace(/\(.*?\)/g, '')
+        .replace(/\s+\w+/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .substring(0, 20) || 'string';
 }
 
 function renderMermaid() {
-    const viewer = document.getElementById('mermaidViewer');
-    if(!viewer || !currentSessionData.erd) return;
-    
-    // Clean code formatting for mermaid
-    let cleanErd = currentSessionData.erd.replace(/```mermaid/g, '').replace(/```/g, '').trim();
-    if(!cleanErd.startsWith('erDiagram')) cleanErd = "erDiagram\n" + cleanErd;
+    let viewer = document.getElementById('mermaidViewer');
+    if (!viewer) {
+        const tab = document.getElementById('tab-erd');
+        if (!tab) return;
+        tab.innerHTML = '<div id="mermaidViewer" class="mermaid"></div>';
+        viewer = document.getElementById('mermaidViewer');
+    }
 
-    viewer.innerHTML = cleanErd;
+    if (!session.erd) return;
+    viewer.textContent = session.erd;
+    viewer.removeAttribute('data-processed');
+
     try {
-        viewer.removeAttribute('data-processed'); // force re-render
         mermaid.run({ nodes: [viewer] });
-    } catch(e) {
-        viewer.innerHTML = `<div class="empty-state" style="color:var(--danger)">Cú pháp ERD bị lỗi. Chọn Refresh hoặc xem SQL.</div>`;
+    } catch (error) {
+        console.error('[Mermaid] Render error:', error);
+        viewer.innerHTML = '<div class="empty-state"><i data-lucide="triangle-alert"></i><p>ERD render thất bại. Xem tạm ở tab SQL hoặc DBML.</p></div>';
+        refreshIcons();
     }
 }
 
-function toggleButtons(isWorking) {
+function buildCodePreview(data) {
+    const parts = [];
+
+    if (data.isFlask) {
+        if (data.runCode) parts.push(`# run.py\n${data.runCode}`);
+        if (data.initCode) parts.push(`# app/__init__.py\n${data.initCode}`);
+        if (data.configCode) parts.push(`# app/config.py\n${data.configCode}`);
+        if (data.dbCode) parts.push(`# app/db.py\n${data.dbCode}`);
+    } else {
+        if (data.serverCode) parts.push(`// src/server.js\n${data.serverCode}`);
+        if (data.appCode) parts.push(`// src/app.js\n${data.appCode}`);
+        if (data.dbCode) parts.push(`// src/db.js\n${data.dbCode}`);
+    }
+
+    for (const folder of ['controllers', 'services', 'routes']) {
+        for (const file of (data[folder] ?? [])) {
+            const header = data.isFlask ? `# app/${folder}/${file.filename}` : `// src/${folder}/${file.filename}`;
+            parts.push(`${header}\n${file.code}`);
+        }
+    }
+
+    return parts.join('\n\n').trim();
+}
+
+function setTabContent(id, html) {
+    const tab = document.getElementById(id);
+    if (tab) {
+        tab.innerHTML = html;
+        refreshIcons();
+    }
+}
+
+function renderMarkdownSafe(markdown) {
+    return sanitizeHtml(marked.parse(normalizeReadmeMarkdown(markdown ?? '')));
+}
+
+function normalizeReadmeMarkdown(markdown) {
+    const lines = String(markdown ?? '').replace(/\r\n/g, '\n').split('\n');
+    const output = [];
+    let inFence = false;
+
+    for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith('```')) {
+            inFence = !inFence;
+            output.push(line);
+            continue;
+        }
+
+        if (!inFence && /^#{1,6}\s+(project structure|cấu trúc thư mục|folder structure|directory structure)$/i.test(trimmed)) {
+            output.push(line);
+            output.push('');
+
+            const block = [];
+            let j = i + 1;
+
+            while (j < lines.length) {
+                const candidate = lines[j];
+                const candidateTrimmed = candidate.trim();
+
+                if (!candidateTrimmed) {
+                    if (block.length) break;
+                    j += 1;
+                    continue;
+                }
+
+                if (/^#{1,6}\s+/.test(candidateTrimmed)) break;
+                if (/^[-*]\s+/.test(candidateTrimmed) && !/[│├└─]/.test(candidateTrimmed)) break;
+
+                block.push(candidate);
+                j += 1;
+            }
+
+            if (block.length) {
+                output.push('```text');
+                output.push(...block);
+                output.push('```');
+                output.push('');
+                i = j - 1;
+                continue;
+            }
+        }
+
+        output.push(line);
+    }
+
+    return output.join('\n');
+}
+
+function sanitizeHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html ?? '';
+    const blockedTags = new Set(['SCRIPT', 'IFRAME', 'OBJECT', 'EMBED', 'STYLE', 'LINK']);
+    const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
+    const toRemove = [];
+
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (blockedTags.has(node.tagName)) {
+            toRemove.push(node);
+            continue;
+        }
+
+        for (const attr of [...node.attributes]) {
+            const name = attr.name.toLowerCase();
+            const value = attr.value.trim().toLowerCase();
+            if (name.startsWith('on')) {
+                node.removeAttribute(attr.name);
+                continue;
+            }
+            if ((name === 'href' || name === 'src' || name === 'xlink:href') && value.startsWith('javascript:')) {
+                node.removeAttribute(attr.name);
+            }
+        }
+    }
+
+    toRemove.forEach(node => node.remove());
+    return template.innerHTML;
+}
+
+function clearPreviews() {
+    setTabContent('tab-srs', EMPTY_STATES.processing);
+    setTabContent('tab-sql', EMPTY_STATES.processing);
+    setTabContent('tab-dbml', EMPTY_STATES.processing);
+    setTabContent('tab-code', EMPTY_STATES.processing);
+    setTabContent('tab-readme', EMPTY_STATES.processing);
+    setTabContent('tab-erd', '<div id="mermaidViewer" class="mermaid">graph TD; A[Đang tạo ERD...]</div>');
+}
+
+function resetAgentUI() {
+    Object.values(el.agents).forEach(item => {
+        if (!item) return;
+        item.className = 'waiting';
+        const icon = item.querySelector('.icon');
+        if (icon) icon.textContent = '○';
+    });
+}
+
+function updateAgent(id, state) {
+    const item = el.agents[id];
+    if (!item) return;
+    item.className = state;
+    const icon = item.querySelector('.icon');
+    if (!icon) return;
+    icon.textContent = { done: '●', failed: '×', working: '◌' }[state] ?? '○';
+}
+
+function setProgress(percent, label) {
+    if (el.progressBar) el.progressBar.style.width = `${percent}%`;
+    if (el.progressLabel) el.progressLabel.textContent = `${percent}% - ${label}`;
+}
+
+function setWorking(isWorking) {
     el.btnGen.disabled = isWorking;
-    if(!isWorking && currentSessionData.srs) {
+    el.btnRefine.disabled = isWorking;
+    el.btnReset.disabled = isWorking;
+    if (!isWorking && session.srs) {
         el.btnRefine.classList.remove('hidden');
         el.btnReset.classList.remove('hidden');
     }
 }
 
 function resetWorkspace() {
-    if(confirm("Xác nhận xóa trắng màn hình? Lịch sử vẫn sẽ được giữ lại.")) {
-        currentSessionData = {};
-        el.prompt.value = '';
-        clearPreviews();
-        el.preset.value = "custom";
-        el.statusPanel.classList.add('hidden');
-        el.btnRefine.classList.add('hidden');
-        el.btnReset.classList.add('hidden');
-        el.btnExportZip.classList.add('hidden');
-    }
+    if (!confirm('Xóa trạng thái hiện tại? Lịch sử vẫn được giữ lại.')) return;
+    eventSource?.close();
+    session = createEmptySession();
+    el.prompt.value = '';
+    el.preset.value = 'custom';
+    clearPreviews();
+    setTabContent('tab-srs', EMPTY_STATES.srs);
+    setTabContent('tab-sql', EMPTY_STATES.sql);
+    setTabContent('tab-dbml', EMPTY_STATES.dbml);
+    setTabContent('tab-code', EMPTY_STATES.code);
+    setTabContent('tab-readme', EMPTY_STATES.readme);
+    setTabContent('tab-erd', '<div id="mermaidViewer" class="mermaid">graph TD; A[ERD Preview] --> B(Waiting...);</div>');
+    el.statusPanel.classList.add('hidden');
+    el.btnRefine.classList.add('hidden');
+    el.btnReset.classList.add('hidden');
+    el.btnExportZip.classList.add('hidden');
+    el.btnExportZip.dataset.url = '';
+    el.btnExportZip.dataset.usedMock = 'false';
+    resetAgentUI();
 }
 
-// --- HISTORY & CHECKPOINTS ---
-function saveCheckpoint() {
-    let history = JSON.parse(localStorage.getItem('vibe_history') || '[]');
-    // Max 10 items
-    history.unshift(currentSessionData);
-    if(history.length > 10) history = history.slice(0, 10);
-    localStorage.setItem('vibe_history', JSON.stringify(history));
-    loadHistory();
+function escapeHtml(value) {
+    return (value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function saveSession() {
+    try {
+        let history = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+        history = history.filter(item => item.id !== session.id);
+        history.unshift({ ...session });
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
+        loadHistory();
+    } catch (error) {
+        console.warn('[History] Save failed:', error);
+    }
 }
 
 function loadHistory() {
-    const history = JSON.parse(localStorage.getItem('vibe_history') || '[]');
-    el.historyList.innerHTML = '';
-    
-    if(history.length===0) {
-        el.historyList.innerHTML = '<li class="empty-state" style="margin:0;font-size:0.8rem">Chưa có bản nháp nào.</li>';
+    let history = [];
+    try {
+        history = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+    } catch {
+        history = [];
+    }
+
+    if (!history.length) {
+        el.historyList.innerHTML = '<li class="empty-state" style="min-height:120px"><i data-lucide="history"></i><p>Chưa có phiên nào được lưu.</p></li>';
+        refreshIcons();
         return;
     }
 
-    history.forEach((sess, idx) => {
-        const titleText = sess.prompt.substring(0, 30) + "...";
-        const html = `
-            <li class="history-item" data-idx="${idx}">
-                <div>
-                    <strong>v${history.length - idx}.</strong> ${titleText}<br>
-                    <small style="color:var(--text-muted)">${sess.timestamp}</small>
-                </div>
-                <span>↻</span>
-            </li>
-        `;
-        el.historyList.insertAdjacentHTML('beforeend', html);
-    });
+    el.historyList.innerHTML = history.map((item, index) => `
+        <li class="history-item" data-idx="${index}">
+            <div>
+                <strong>v${history.length - index}.</strong> ${escapeHtml((item.prompt ?? '').substring(0, 52))}...<br>
+                <small>${escapeHtml(item.timestamp ?? '')}</small>
+            </div>
+            <span>↗</span>
+        </li>
+    `).join('');
 
-    document.querySelectorAll('.history-item').forEach(item => {
-        item.addEventListener('click', (e) => restoreCheckpoint(e.currentTarget.dataset.idx));
+    el.historyList.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', event => restoreSession(Number(event.currentTarget.dataset.idx)));
     });
 }
 
-function restoreCheckpoint(idx) {
-    const history = JSON.parse(localStorage.getItem('vibe_history') || '[]');
-    currentSessionData = history[idx];
-    if(!currentSessionData) return;
+function clearHistory() {
+    const confirmed = confirm('Bạn có chắc muốn xóa toàn bộ lịch sử đã lưu không?');
+    if (!confirmed) return;
 
-    // Load to UI
-    el.prompt.value = currentSessionData.prompt;
-    document.getElementById('tab-srs').innerHTML = marked.parse(currentSessionData.srs);
-    
-    const safeSql = currentSessionData.sql ? currentSessionData.sql.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-    document.getElementById('tab-sql').innerHTML = safeSql;
-    
-    const safeCode = currentSessionData.code ? currentSessionData.code.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-    document.getElementById('tab-code').innerHTML = safeCode;
-    
-    document.getElementById('tab-readme').innerHTML = marked.parse(currentSessionData.readme);
-    
-    // Switch to ERD Tab to render
-    document.querySelector('[data-target="tab-erd"]').click();
-
-    // Enable buttons
-    el.btnRefine.classList.remove('hidden');
-    el.btnReset.classList.remove('hidden');
-    alert("Khôi phục phiên làm việc thành công!");
+    localStorage.removeItem(HISTORY_KEY);
+    loadHistory();
 }
 
-// --- EXPORT ---
-function downloadSingleArtifact() {
-    // Determine active tab
-    const activeBtn = document.querySelector('.tab-btn.active');
-    const target = activeBtn.getAttribute('data-target');
-    
-    let content = "", filename = "";
-    if(target==='tab-srs') { content = currentSessionData.srs; filename = 'SRS.md'; }
-    if(target==='tab-erd') { content = currentSessionData.erd; filename = 'ERD.mmd'; }
-    if(target==='tab-sql') { content = currentSessionData.sql; filename = 'Database.sql'; }
-    if(target==='tab-code') { content = currentSessionData.code; filename = 'Backend_Code.js'; }
-    if(target==='tab-readme') { content = currentSessionData.readme; filename = 'README.md'; }
+function restoreSession(index) {
+    try {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+        const saved = history[index];
+        if (!saved) return;
 
-    if(!content) return alert("Không có dữ liệu ở tab này!");
+        session = { ...saved };
+        el.prompt.value = saved.prompt ?? '';
+        setTabContent('tab-srs', saved.srs ? renderMarkdownSafe(saved.srs) : EMPTY_STATES.noData);
+        setTabContent('tab-readme', saved.readme ? renderMarkdownSafe(saved.readme) : EMPTY_STATES.noData);
 
-    const blob = new Blob([content], { type: 'text/plain' });
+        if (saved.sql) {
+            const highlighted = hljs.highlight(saved.sql, { language: 'sql' }).value;
+            setTabContent('tab-sql', `<pre><code class="hljs language-sql">${highlighted}</code></pre>`);
+        } else {
+            setTabContent('tab-sql', EMPTY_STATES.noData);
+        }
+
+        if (saved.dbml) {
+            setTabContent('tab-dbml', `<pre class="code-body">${escapeHtml(saved.dbml)}</pre>`);
+        } else {
+            setTabContent('tab-dbml', EMPTY_STATES.noData);
+        }
+
+        if (saved.code) {
+            const language = saved.isFlask ? 'python' : 'javascript';
+            try {
+                const highlighted = hljs.highlight(saved.code, { language }).value;
+                setTabContent('tab-code', `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`);
+            } catch {
+                setTabContent('tab-code', `<pre><code>${escapeHtml(saved.code)}</code></pre>`);
+            }
+        } else {
+            setTabContent('tab-code', EMPTY_STATES.noData);
+        }
+
+        setTabContent('tab-erd', '<div id="mermaidViewer" class="mermaid"></div>');
+        setTimeout(renderMermaid, 80);
+        el.btnRefine.classList.remove('hidden');
+        el.btnReset.classList.remove('hidden');
+        el.statusPanel.classList.remove('hidden');
+        setProgress(100, 'Đã khôi phục phiên đã lưu.');
+        Object.keys(el.agents).forEach(key => updateAgent(key, 'done'));
+    } catch (error) {
+        console.error('[History] Restore failed:', error);
+        alert('Không thể khôi phục phiên này.');
+    }
+}
+
+function downloadActiveTab() {
+    const activeButton = document.querySelector('.tab-btn.active');
+    if (!activeButton) return;
+
+    const target = activeButton.getAttribute('data-target');
+    const fileMap = {
+        'tab-srs': { content: session.srs, name: 'SRS.md', type: 'text/markdown' },
+        'tab-erd': { content: session.erd, name: 'ERD.mmd', type: 'text/plain' },
+        'tab-sql': { content: session.sql, name: 'schema.sql', type: 'text/plain' },
+        'tab-dbml': { content: session.dbml, name: 'database.dbml', type: 'text/plain' },
+        'tab-code': { content: session.code, name: session.isFlask ? 'backend.py' : 'backend.js', type: 'text/plain' },
+        'tab-readme': { content: session.readme, name: 'README.md', type: 'text/markdown' },
+    };
+
+    const entry = fileMap[target];
+    if (!entry?.content) {
+        alert('Tab này chưa có dữ liệu để tải về.');
+        return;
+    }
+
+    const blob = new Blob([entry.content], { type: `${entry.type};charset=utf-8` });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    const anchor = Object.assign(document.createElement('a'), { href: url, download: entry.name });
+    anchor.click();
     URL.revokeObjectURL(url);
 }
 
-function downloadFullZip() {
-    const url = el.btnExportZip.getAttribute('data-url');
-    if(!url) return alert("ZIP chưa sẵn sàng!");
+function downloadZip() {
+    const url = el.btnExportZip.dataset.url;
+    if (!url) {
+        alert('ZIP chưa được tạo. Hãy chạy pipeline trước.');
+        return;
+    }
+    if (el.btnExportZip.dataset.usedMock === 'true') {
+        const proceed = confirm('Pipeline này có dùng mock mode. Bạn vẫn muốn tải artifact để xem demo?');
+        if (!proceed) return;
+    }
     window.location.href = url;
 }

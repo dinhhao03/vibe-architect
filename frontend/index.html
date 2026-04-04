@@ -1,85 +1,212 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibe Architect — AI Scaffolding Engine</title>
+    <title>Vibe Architect - AI Scaffolding Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="style.css">
-    <!-- Mermaid.js for ERD -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-    <script>mermaid.initialize({startOnLoad: false, theme: 'dark'});</script>
-    <!-- Marked.js for Markdown -->
+    <script>mermaid.initialize({ startOnLoad: false, theme: 'dark' });</script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- Highlight.js for Syntax Coloring -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
-
-    <!-- ==================== LANDING PAGE ==================== -->
-    <div id="landingPage" class="landing-page active">
-        <div class="landing-content">
-            <div class="landing-logo">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-            </div>
-            <h1 class="landing-title">Vibe <span>Architect</span></h1>
-            <p class="landing-subtitle">AI-Powered Scaffolding Engine</p>
-            <p class="landing-desc">Biến ý tưởng thành kiến trúc Backend hoàn chỉnh. Multi-Agent AI phân tích, thiết kế database, và sinh mã nguồn MVC chuẩn production trong vài giây.</p>
-            <div class="landing-badges">
-                <span class="badge">Multi-Agent Pipeline</span>
-                <span class="badge">Real-time Streaming</span>
-                <span class="badge">MVC Architecture</span>
-                <span class="badge">Multi-Stack Support</span>
-            </div>
-            <button id="getStartedBtn" class="btn-primary btn-large">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
-                Bắt đầu thiết kế
-            </button>
-        </div>
-        <div class="background-anim"></div>
+    <div class="site-bg" aria-hidden="true">
+        <div class="site-noise"></div>
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+        <div class="orb orb-c"></div>
+        <div class="grid-glow"></div>
     </div>
 
-    <!-- ==================== MAIN WORKSPACE ==================== -->
-    <div id="workspace" class="workspace hidden">
-        <!-- HEADER -->
-        <header class="app-header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+    <div id="landingPage" class="landing-page active">
+        <div class="landing-shell">
+            <header class="landing-nav glass-panel">
+                <div class="brand">
+                    <div class="brand-mark">
+                        <svg class="brand-symbol" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M32 7L50 17.5V38.5L32 49L14 38.5V17.5L32 7Z" stroke="currentColor" stroke-width="3"/>
+                            <path d="M32 17L41.5 22.5V33.5L32 39L22.5 33.5V22.5L32 17Z" stroke="currentColor" stroke-width="3"/>
+                            <path d="M14 17.5L32 28L50 17.5" stroke="currentColor" stroke-width="3"/>
+                            <path d="M32 28V49" stroke="currentColor" stroke-width="3"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="brand-kicker">Intelligent System Design</p>
+                        <h1>Vibe Architect</h1>
+                    </div>
                 </div>
-                Vibe Architect
+                <div class="nav-pills">
+                    <span class="nav-pill"><i data-lucide="sparkles"></i> AI-native flow</span>
+                    <span class="nav-pill"><i data-lucide="boxes"></i> Structure-first</span>
+                </div>
+            </header>
+
+            <section class="hero-grid">
+                <div class="hero-copy">
+                    <div class="hero-eyebrow">
+                        <span class="eyebrow-dot"></span>
+                        Multi-agent backend architecture generator
+                    </div>
+                    <h2 class="hero-title">Biến mô tả dự án thành một kiến trúc backend chuyên nghiệp, hiện đại và sẵn sàng sử dụng!</h2>
+                    <p class="hero-description">
+                        Phân tích yêu cầu, dựng database, tạo DBML, SQL, README và code scaffold trong một pipeline trực quan.
+                        Giao diện mờ ảo ưu tiên cảm giác studio cao cấp, chuyển động nhẹ và tập trung vào chất lượng hệ thống.
+                    </p>
+
+                    <div class="hero-actions">
+                        <button id="getStartedBtn" class="btn-primary btn-large">
+                            <i data-lucide="rocket"></i>
+                            Bắt đầu thiết kế
+                        </button>
+                        <div class="hero-note">
+                            <i data-lucide="waves"></i>
+                            Motion mượt, icon đồng nhất, workspace đồng bộ với landing
+                        </div>
+                    </div>
+
+                    <div class="hero-metrics">
+                        <div class="metric-card glass-panel">
+                            <span>Flow</span>
+                            <strong>4-stage pipeline</strong>
+                            <p>Analyst, Architect, Developer, Validator hoạt động liên tục.</p>
+                        </div>
+                        <div class="metric-card glass-panel">
+                            <span>Artifacts</span>
+                            <strong>SRS to ZIP</strong>
+                            <p>Sinh ra tài liệu và mã nguồn trong một workspace duy nhất.</p>
+                        </div>
+                        <div class="metric-card glass-panel">
+                            <span>Visual</span>
+                            <strong>Modern ambient UI</strong>
+                            <p>Nền động nhẹ, chiều sâu thị giác và typography giàu cá tính.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-preview glass-panel">
+                    <div class="preview-frame-header">
+                        <div class="preview-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <span>vibe-architect.live-workspace</span>
+                    </div>
+                    <div class="preview-stack">
+                        <div class="preview-column">
+                            <div class="preview-card preview-card-focus">
+                                <div class="preview-card-head">
+                                    <span class="mini-tag">Requirement Signal</span>
+                                    <i data-lucide="scan-search"></i>
+                                </div>
+                                <h3>Product brief được chuyển thành blueprint hành động.</h3>
+                                <p>User story, actor flow, core entity và boundary kỹ thuật được tách lớp rõ ràng.</p>
+                            </div>
+                            <div class="preview-flow">
+                                <span>Prompt</span>
+                                <i data-lucide="move-right"></i>
+                                <span>SRS</span>
+                                <i data-lucide="move-right"></i>
+                                <span>Schema</span>
+                                <i data-lucide="move-right"></i>
+                                <span>Code</span>
+                            </div>
+                        </div>
+                        <div class="preview-column">
+                            <div class="preview-card">
+                                <div class="preview-card-head">
+                                    <span class="mini-tag">Database Model</span>
+                                    <i data-lucide="database-zap"></i>
+                                </div>
+                                <ul class="signal-list">
+                                    <li><span></span>Normalized entity map</li>
+                                    <li><span></span>Mermaid ERD preview</li>
+                                    <li><span></span>SQL + DBML synchronized</li>
+                                </ul>
+                            </div>
+                            <div class="preview-card">
+                                <div class="preview-card-head">
+                                    <span class="mini-tag">Code Assembly</span>
+                                    <i data-lucide="braces"></i>
+                                </div>
+                                <div class="code-ghost">
+                                    <span>controllers/</span>
+                                    <span>services/</span>
+                                    <span>routes/</span>
+                                    <span>README.md</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="workspace" class="workspace hidden">
+        <header class="app-header glass-panel">
+            <div class="brand brand-compact">
+                <div class="brand-mark">
+                    <svg class="brand-symbol" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M32 7L50 17.5V38.5L32 49L14 38.5V17.5L32 7Z" stroke="currentColor" stroke-width="3"/>
+                        <path d="M32 17L41.5 22.5V33.5L32 39L22.5 33.5V22.5L32 17Z" stroke="currentColor" stroke-width="3"/>
+                        <path d="M14 17.5L32 28L50 17.5" stroke="currentColor" stroke-width="3"/>
+                        <path d="M32 28V49" stroke="currentColor" stroke-width="3"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="brand-kicker">AI Scaffolding Engine</p>
+                    <h1>Vibe Architect</h1>
+                </div>
             </div>
+
+            <div class="workspace-headline">
+                <span class="workspace-chip"><i data-lucide="badge-check"></i> Unified interface</span>
+                <span class="workspace-chip"><i data-lucide="orbit"></i> Ambient motion system</span>
+            </div>
+
             <div class="toolbar">
-                <button id="themeToggle" class="btn-ghost" title="Toggle Theme">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                <button id="themeToggle" class="btn-ghost icon-btn" title="Toggle Theme">
+                    <i data-lucide="sun-moon"></i>
                 </button>
                 <button id="btnExportZip" class="btn-primary hidden">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    <i data-lucide="package"></i>
                     Export ZIP
                 </button>
             </div>
         </header>
 
         <div class="split-pane">
-            <!-- ===== LEFT PANEL ===== -->
             <aside class="left-panel">
-                <!-- History -->
-                <section class="panel-section history-section">
-                    <h3>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        History
-                    </h3>
+                <section class="panel-hero glass-panel">
+                    <div class="panel-hero-top">
+                        <div>
+                            <p class="panel-label">Design Console</p>
+                            <h2>Điều phối prompt, preset và trạng thái pipeline.</h2>
+                        </div>
+                        <div class="panel-hero-icon">
+                            <i data-lucide="cpu"></i>
+                        </div>
+                    </div>
+                    <p class="panel-hero-copy">Tối ưu cho nhịp làm việc nhanh: nhập mô tả, xem tiến trình theo agent và kiểm tra toàn bộ artifact trong cùng một màn hình.</p>
+                </section>
+
+                <section class="panel-section glass-panel history-section">
+                    <div class="section-header">
+                        <h3><i data-lucide="history"></i> History</h3>
+                        <button id="btnClearHistory" class="btn-danger btn-small" type="button">Clear History</button>
+                    </div>
                     <ul id="historyList" class="history-list"></ul>
                 </section>
 
-                <!-- Input Config -->
-                <section class="panel-section input-section">
+                <section class="panel-section glass-panel input-section">
                     <div class="form-group">
                         <label for="presetSelect">Preset Template</label>
                         <select id="presetSelect" class="input-modern">
-                            <option value="custom">Custom — Nhập ý tưởng riêng</option>
+                            <option value="custom">Custom - Nhập ý tưởng riêng</option>
                             <option value="ecommerce">E-Commerce Platform</option>
                             <option value="library">Library Management</option>
                             <option value="taskmanager">Task Manager (Trello Clone)</option>
@@ -98,83 +225,67 @@
 
                     <div class="form-group">
                         <label for="prompt">Project Description</label>
-                        <textarea id="prompt" class="input-modern" placeholder="Mô tả yêu cầu dự án. VD: Hệ thống đặt lịch khám bệnh trực tuyến cho bệnh viện..."></textarea>
+                        <textarea id="prompt" class="input-modern" placeholder="Mô tả yêu cầu dự án. Ví dụ: hệ thống đặt lịch khám bệnh, quản lý bác sĩ, hóa đơn, lịch tái khám và thông báo tự động..."></textarea>
                     </div>
                 </section>
 
-                <!-- Actions -->
-                <section class="action-section">
+                <section class="action-section glass-panel">
                     <button id="btnGenerate" class="btn-primary w-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <i data-lucide="sparkles"></i>
                         Generate Pipeline
                     </button>
                     <div class="action-row">
                         <button id="btnRefine" class="btn-secondary hidden w-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                            <i data-lucide="refresh-cw"></i>
                             Refine
                         </button>
                         <button id="btnReset" class="btn-danger w-full hidden">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            <i data-lucide="rotate-ccw"></i>
                             Reset
                         </button>
                     </div>
                 </section>
 
-                <!-- Agent Status -->
-                <section id="statusPanel" class="panel-section status-section hidden">
-                    <h3>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                        Pipeline Status
-                    </h3>
+                <section id="statusPanel" class="panel-section glass-panel status-section hidden">
+                    <h3><i data-lucide="activity"></i> Pipeline Status</h3>
                     <div class="progress-bar-container">
                         <div id="progressBar" class="progress-bar" style="width: 0%"></div>
                     </div>
                     <p id="progressLabel" class="progress-label">Initializing...</p>
                     <ul class="agent-list">
                         <li id="statusAgent1" class="waiting">
-                            <span class="icon">○</span> <strong>Analyst</strong> <span class="desc" style="color:var(--text-tertiary)">— SRS & Requirements</span>
+                            <span class="icon">○</span>
+                            <div><strong>Analyst</strong><span class="desc">Requirements and SRS modeling</span></div>
                         </li>
                         <li id="statusAgent2" class="waiting">
-                            <span class="icon">○</span> <strong>Architect</strong> <span class="desc" style="color:var(--text-tertiary)">— ERD & SQL Schema</span>
+                            <span class="icon">○</span>
+                            <div><strong>Architect</strong><span class="desc">ERD, DBML and SQL schema</span></div>
                         </li>
                         <li id="statusAgent3" class="waiting">
-                            <span class="icon">○</span> <strong>Developer</strong> <span class="desc" style="color:var(--text-tertiary)">— MVC Backend Code</span>
+                            <span class="icon">○</span>
+                            <div><strong>Developer</strong><span class="desc">Scaffold assembly for backend</span></div>
                         </li>
                         <li id="statusValidator" class="waiting">
-                            <span class="icon">○</span> <strong>Validator</strong> <span class="desc" style="color:var(--text-tertiary)">— Integrity Check & ZIP</span>
+                            <span class="icon">○</span>
+                            <div><strong>Validator</strong><span class="desc">Integrity check and delivery</span></div>
                         </li>
                     </ul>
                 </section>
             </aside>
 
-            <!-- ===== RIGHT PANEL (PREVIEW) ===== -->
             <main class="right-panel">
-                <div class="preview-header">
+                <div class="preview-header glass-panel">
                     <div class="tabs">
-                        <button class="tab-btn active" data-target="tab-srs">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-                            SRS
-                        </button>
-                        <button class="tab-btn" data-target="tab-erd">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
-                            ERD
-                        </button>
-                        <button class="tab-btn" data-target="tab-sql">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
-                            SQL
-                        </button>
-                        <button class="tab-btn" data-target="tab-code">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                            Code
-                        </button>
-                        <button class="tab-btn" data-target="tab-readme">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-                            README
-                        </button>
+                        <button class="tab-btn active" data-target="tab-srs"><i data-lucide="file-text"></i> SRS</button>
+                        <button class="tab-btn" data-target="tab-erd"><i data-lucide="workflow"></i> ERD</button>
+                        <button class="tab-btn" data-target="tab-sql"><i data-lucide="database"></i> SQL</button>
+                        <button class="tab-btn" data-target="tab-dbml"><i data-lucide="library-big"></i> DBML</button>
+                        <button class="tab-btn" data-target="tab-code"><i data-lucide="code-xml"></i> Code</button>
+                        <button class="tab-btn" data-target="tab-readme"><i data-lucide="book-open-text"></i> README</button>
                     </div>
                     <div class="tab-actions">
                         <button id="btnDownloadSingle" class="btn-outline">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            <i data-lucide="download"></i>
                             Download Tab
                         </button>
                     </div>
@@ -182,19 +293,37 @@
 
                 <div class="preview-content">
                     <div id="tab-srs" class="tab-pane active markdown-body">
-                        <div class="empty-state">Waiting for Agent 1 — SRS Analysis...</div>
+                        <div class="empty-state">
+                            <i data-lucide="file-search"></i>
+                            <p>Waiting for Agent 1 - SRS analysis...</p>
+                        </div>
                     </div>
                     <div id="tab-erd" class="tab-pane">
                         <div id="mermaidViewer" class="mermaid">graph TD; A[ERD Preview] --> B(Waiting...);</div>
                     </div>
                     <div id="tab-sql" class="tab-pane code-body">
-                        <div class="empty-state">Waiting for Agent 2 — SQL Schema...</div>
+                        <div class="empty-state">
+                            <i data-lucide="database-backup"></i>
+                            <p>Waiting for Agent 2 - SQL schema...</p>
+                        </div>
+                    </div>
+                    <div id="tab-dbml" class="tab-pane code-body">
+                        <div class="empty-state">
+                            <i data-lucide="scroll-text"></i>
+                            <p>Waiting for DBML generation...</p>
+                        </div>
                     </div>
                     <div id="tab-code" class="tab-pane code-body">
-                        <div class="empty-state">Waiting for Agent 3 — Backend Code...</div>
+                        <div class="empty-state">
+                            <i data-lucide="binary"></i>
+                            <p>Waiting for Agent 3 - backend code...</p>
+                        </div>
                     </div>
                     <div id="tab-readme" class="tab-pane markdown-body">
-                        <div class="empty-state">Waiting for README generation...</div>
+                        <div class="empty-state">
+                            <i data-lucide="notebook-tabs"></i>
+                            <p>Waiting for README generation...</p>
+                        </div>
                     </div>
                 </div>
             </main>

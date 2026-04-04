@@ -1,96 +1,270 @@
-# ✨ Vibe-Architect (Scaffolding Engine) v2.1 — Elite AI Edition
+﻿# Vibe Architect
 
-**Hệ sinh thái kiến trúc Backend thông minh bậc nhất — Thiết kế tối ưu cho các buổi Demo và Đồ án Công nghệ.**
-*PROJECT: Software Engineering Midterm | TARGET SCORE: 10/10*
+Vibe Architect là một ứng dụng web hỗ trợ biến mô tả dự án backend bằng ngôn ngữ tự nhiên thành bộ artifact khởi tạo dự án, gồm SRS, ERD, DBML, SQL schema, README và mã nguồn backend scaffold. Hệ thống được xây dựng theo hướng multi-agent pipeline để tách riêng ba giai đoạn chính: phân tích yêu cầu, thiết kế dữ liệu và sinh mã backend.
 
-![Vibe-Architect UI Preview](https://raw.githubusercontent.com/dinhhao03/vibe-architect/main/docs/ui-preview.png)
+## Mục tiêu dự án
 
-## 🚀 Giới Thiệu
+Dự án phục vụ ba mục tiêu chính:
 
-**Vibe-Architect** là một công cụ Scaffolding Engine mạnh mẽ dựa trên kiến trúc **AI Agentic Workflow**. Không giống như các trình sinh mã nguồn thông thường, Vibe-Architect phối hợp nhiều "Agent" chuyên biệt để phân tích nghiệp vụ, thiết kế cơ sở dữ liệu và viết mã nguồn Backend hoàn chỉnh (Node.js/Flask) theo chuẩn Production chỉ từ một câu mô tả ý tưởng.
+- Minh họa mối liên hệ giữa phân tích yêu cầu, thiết kế dữ liệu và hiện thực backend trong một luồng liền mạch.
+- Tạo công cụ demo/học tập cho môn học liên quan đến yêu cầu phần mềm, kiến trúc phần mềm và quy trình phát triển.
+- Rút ngắn thời gian dựng skeleton backend cho các bài tập, đồ án nhỏ và các buổi thuyết trình.
 
----
+## Tính năng hiện có
 
-## 💎 Các Tính Năng Đắt Giá (Phiên bản v2.1)
+- Nhập mô tả dự án bằng tiếng Việt hoặc tiếng Anh.
+- Chọn backend stack: `Node.js + Express` hoặc `Python + Flask`.
+- Chạy pipeline nhiều pha qua SSE để theo dõi tiến trình theo thời gian thực.
+- Sinh và hiển thị trực tiếp các artifact:
+  - SRS/User Stories
+  - ERD Mermaid
+  - DBML
+  - SQL schema PostgreSQL
+  - Backend scaffold code
+  - README cho project đầu ra
+- Tải từng artifact riêng lẻ hoặc tải toàn bộ project dưới dạng ZIP.
+- Lưu lịch sử các phiên đã chạy ở phía client để khôi phục nhanh.
+- Hỗ trợ light/dark theme và giao diện landing/workspace đồng bộ.
+- Có mock fallback khi không có API key hoặc khi toàn bộ chuỗi model/key bị lỗi.
+- Có cache cho phản hồi AI thật để giảm số lần gọi API lặp lại.
 
-### 1. 🧠 Multi-Agent Orchestration Pipeline
-Quy trình tư duy độc lập qua 3 "não bộ" AI chuyên biệt:
--   **Agent 1 (Analyst):** Phân tích nghiệp vụ, sinh ra User Stories và tài liệu SRS.
--   **Agent 2 (Architect):** Thiết kế Database Schema (SQL) và tự động vẽ biểu đồ ERD (Mermaid).
--   **Agent 3 (Developer):** Viết mã nguồn (Controllers, Services, Routes) bám sát 100% theo Schema đã thiết kế.
+## Kiến trúc tổng quan
 
-### 2. 🛡️ Demo-Ready Mode (Càn quét mọi lỗi API)
-Được thiết kế để **không bao giờ thất bại** khi trình diễn:
--   **Response Cache (MD5):** Mọi prompt duy nhất đều được băm (hash) và lưu cache nội bộ. Demo lại kết quả cũ là **tức thì (0ms)** và **không tốn API call**.
--   **8-Tier Cascading:** Tự động hạ cấp model khi gặp lỗi Quota (429) hoặc bận (503): `2.5 Pro` → `1.5 Pro` → `2.5 Flash` → `2.0 Flash` → `1.5 Flash` → `2.5 Lite` → `2.0 Lite` → `Local Mock`.
--   **Multi-Key Rotation:** Hỗ trợ cấu hình tối đa **10 API Key**. Nếu Key #1 hết hạn mức, hệ thống tự động nhảy sang Key #2 mà không làm gián đoạn tiến trình.
+Pipeline hiện tại gồm 3 agent nghiệp vụ và 1 lớp đóng gói artifact:
 
-### 🎨 3. Giao Diện Premium (Zinc Design System)
--   **Aesthetics:** Phong cách tối giản (Minimalism) với tone màu Zinc/Indigo hiện đại.
--   **Iconography:** Sử dụng bộ icon SVG chuyên nghiệp từ **Lucide Icons** — loại bỏ hoàn toàn emoji "nhựa".
--   **Real-time Streaming:** Thanh tiến trình gradient chạy mượt mà kèm trạng thái chi tiết của từng Agent.
+1. `AnalystAgent`
+   - Nhận mô tả dự án và stack yêu cầu.
+   - Sinh `projectName`, `projectOverview`, `userStories`, `isFlask`.
 
-### 📦 4. Output ZIP Chất Lượng Cao
-Dự án xuất ra là một **Starter Kit hoàn chỉnh**, không chỉ là code mẫu:
--   **Full CRUD Logic:** Triển khai đầy đủ logic nghiệp vụ, xử lý lỗi trung tâm.
--   **Transaction Support:** Lớp Service hỗ trợ **SQL Transactions** (BEGIN/COMMIT/ROLLBACK).
--   **Multi-Stack:** Tùy chọn linh hoạt giữa **Node.js (Express)** và **Python (Flask)**.
--   **Environment Ready:** Luôn đi kèm `.env.example`, `package.json` chuẩn và `README` hướng dẫn setup riêng.
+2. `ArchitectAgent`
+   - Nhận SRS từ Analyst.
+   - Sinh `db_structure`, `dbml`, `sql`.
 
----
+3. `DeveloperAgent`
+   - Nhận SRS và SQL/ERD từ Architect.
+   - Sinh mã backend theo stack đã chọn cùng README cho project đầu ra.
 
-## 🛠️ Hướng Dẫn Cài Đặt Chi Tiết
+4. `ScaffoldFactory`
+   - Kiểm tra tính đầy đủ của dữ liệu trung gian.
+   - Đóng gói tài liệu và source code thành file ZIP trong thư mục `downloads/`.
 
-### 1. Yêu cầu hệ thống
--   **Node.js:** Phiên bản 18.x trở lên.
--   **Trình duyệt:** Chrome, Edge hoặc Brave (Khuyến nghị để render Mermaid tốt nhất).
+Luồng chạy chính:
 
-### 2. Các bước cài đặt
-1.  **Tải mã nguồn và cài đặt thư viện:**
-    ```bash
-    git clone https://github.com/dinhhao03/vibe-architect.git
-    cd vibe-architect
-    npm install
-    ```
+`Prompt -> Analyst -> Architect -> Developer -> ZIP Export`
 
-2.  **Cấu hình biến môi trường (.env):**
-    Tạo file `.env` tại thư mục gốc và nhập API key từ [Google AI Studio](https://aistudio.google.com/):
-    ```env
-    PORT=3000
-    
-    # Key chính (Bắt buộc)
-    GEMINI_API_KEY=your_key_here
-    
-    # Các key dự phòng (Tùy chọn - Giúp demo không bị gián đoạn)
-    GEMINI_API_KEY_2=key_2
-    GEMINI_API_KEY_3=key_3
-    ```
+## Cấu trúc thư mục
 
-3.  **Khởi chạy hệ thống:**
-    ```bash
-    npm run dev
-    ```
-    Truy cập tại địa chỉ: **[http://localhost:3000](http://localhost:3000)**
+```text
+vibe-architect/
+|-- backend/
+|   |-- agents/
+|   |   |-- AnalystAgent.js
+|   |   |-- ArchitectAgent.js
+|   |   `-- DeveloperAgent.js
+|   |-- controllers/
+|   |   `-- OrchestratorController.js
+|   |-- services/
+|   |   |-- AIClient.js
+|   |   `-- ScaffoldFactory.js
+|   `-- server.js
+|-- frontend/
+|   |-- index.html
+|   |-- style.css
+|   `-- app.js
+|-- docs/
+|   |-- Vibe-Architect-Midterm-Report.md
+|   `-- demo-script-7-minutes.html
+|-- scripts/
+|   |-- generate-report-docx.js
+|   `-- generate-report-docx-fixed.js
+|-- downloads/
+|-- .cache/
+|-- report.html
+|-- README.md
+|-- package.json
+`-- .env
+```
 
----
+## Công nghệ sử dụng
 
-## 💡 Chiến Thuật Demo "Bất Bại" (Warm-up Cache)
+### Backend
 
-Để buổi thuyết trình **mượt mà 100%** ngay cả khi mạng yếu hoặc API bị lỗi, hãy tận dụng tính năng **Response Cache**:
+- Node.js
+- Express
+- `@google/genai`
+- `archiver`
+- `dotenv`
+- `cors`
 
-1.  **Trước buổi demo 1 đêm:** Mở server và chọn lần lượt các **Preset Template** (E-Commerce, Smart Home, Task Manager...).
-2.  Nhấn **Generate** để AI chạy và lưu kết quả vào thư mục `.cache/`.
-3.  **Khi demo thực tế:** Bạn chỉ cần chọn lại các Preset đó, kết quả sẽ hiện ra ngay lập tức mà không cần gọi API (0ms latency). Điều này sẽ gây ấn tượng cực mạnh về tốc độ xử lý của hệ thống!
+### Frontend
 
----
+- HTML/CSS/JavaScript thuần
+- Mermaid.js
+- Marked.js
+- Highlight.js
+- Lucide Icons
 
-## 🏗️ Cấu Trúc Dự Án (Core Folders)
+### Hạ tầng phát triển
 
--   `/backend`: Chứa Logic điều phối (Orchestrator), AI Client (Cascade & Rotation) và Factory sinh ZIP.
--   `/frontend`: Giao diện Workspace, xử lý luồng sự kiện SSE và Render Markdown/Mermaid.
--   `.cache`: Nơi lưu trữ các kết quả AI đã băm (hash).
--   `report.html`: Bản báo cáo Premium phục vụ thuyết trình.
+- Git / GitHub
+- Local filesystem cache
+- ZIP export để đóng gói artifact đầu ra
 
----
-**Học phần:** Chuyên đề Phát triển Phần mềm | **Sinh viên:** Đinh Hào
-**Technology Stack:** Node.js, Express, @google/genai, Highlight.js, Mermaid.js, Lucide Icons.
+## Yêu cầu môi trường
+
+- Node.js 18 trở lên
+- npm 9 trở lên
+- Một Gemini API key hợp lệ nếu muốn chạy live AI mode
+
+## Cài đặt và chạy dự án
+
+### 1. Cài dependency
+
+```bash
+npm install
+```
+
+### 2. Tạo file `.env`
+
+Ví dụ:
+
+```env
+PORT=3000
+CORS_ORIGIN=http://localhost:3000
+GEMINI_API_KEY=your_primary_key
+GEMINI_API_KEY_2=your_secondary_key_optional
+GEMINI_API_KEY_3=your_third_key_optional
+```
+
+Ghi chú:
+
+- Có thể cấu hình tối đa 10 key theo dạng `GEMINI_API_KEY`, `GEMINI_API_KEY_2`, ..., `GEMINI_API_KEY_10`.
+- Nếu không có key, hệ thống sẽ chạy mock mode.
+
+### 3. Chạy ứng dụng
+
+```bash
+npm start
+```
+
+Hoặc:
+
+```bash
+npm run dev
+```
+
+Mở trình duyệt tại:
+
+```text
+http://localhost:3000
+```
+
+### 4. Dừng ứng dụng
+
+- Nhấn `Ctrl + C` trong terminal đang chạy server.
+- Server đã hỗ trợ graceful shutdown với `SIGINT` và `SIGTERM`.
+
+## Cách sử dụng
+
+1. Mở landing page và chọn `Bắt đầu thiết kế`.
+2. Chọn preset hoặc nhập mô tả dự án tại `Project Description`.
+3. Chọn backend stack.
+4. Nhấn `Generate Pipeline`.
+5. Theo dõi tiến trình của Analyst, Architect, Developer, Validator.
+6. Kiểm tra kết quả ở các tab `SRS`, `ERD`, `SQL`, `DBML`, `Code`, `README`.
+7. Tải từng tab hoặc export toàn bộ ZIP.
+
+## API và route chính
+
+### HTTP routes của ứng dụng hiện tại
+
+| Method | Route | Mục đích |
+|---|---|---|
+| `GET` | `/api/generate` | Chạy pipeline bằng SSE |
+| `GET` | `/api/download` | Tải file ZIP đã sinh |
+| `GET` | `/report` | Mở báo cáo HTML |
+| `GET` | `/*` | Trả về frontend app |
+
+### SSE events từ pipeline
+
+- `progress`
+- `warning`
+- `srs_ready`
+- `db_ready`
+- `backend_ready`
+- `complete`
+- `error`
+
+## Cơ chế AI và fallback
+
+`AIClient` hiện đang hỗ trợ:
+
+- Model cascade nhiều tầng:
+  - Gemini 2.5 Pro
+  - Gemini 1.5 Pro
+  - Gemini 2.5 Flash
+  - Gemini 2.0 Flash
+  - Gemini 1.5 Flash
+  - Gemini 2.5 Flash Lite
+  - Gemini 2.0 Flash Lite
+- Retry khi gặp lỗi quota/tạm thời.
+- Rotation qua nhiều API key.
+- Cache phản hồi AI thật trong `.cache/` với TTL 24 giờ.
+- Mock fallback nếu không còn model/key khả dụng.
+
+## Artifact đầu ra
+
+Mỗi lần chạy thành công, hệ thống có thể sinh:
+
+- `docs/SRS.md`
+- `docs/ERD.mmd`
+- `docs/database.dbml`
+- `database/schema.sql`
+- `README.md` cho project đầu ra
+- Source backend scaffold theo Express hoặc Flask
+- `.env.example`, `.gitignore`, `package.json` hoặc `requirements.txt`
+
+## Hạn chế hiện tại
+
+- Chất lượng đầu ra vẫn phụ thuộc vào độ rõ ràng của prompt đầu vào.
+- Chưa có bộ test tự động bao phủ toàn bộ pipeline.
+- Chưa có cơ chế xác thực người dùng hoặc persistence lịch sử ở server.
+- Chưa có bước chạy thử project scaffold được sinh ra để xác minh end-to-end.
+- Một số chuỗi tiếng Việt trong code backend cũ còn lỗi encoding; điều này không ảnh hưởng đến luồng chạy chính nhưng nên tiếp tục dọn dẹp nếu phát triển lâu dài.
+
+## Hướng phát triển tiếp theo
+
+- Thêm test tự động cho controller/service/frontend state.
+- Thêm validation và schema kiểm thử mạnh hơn cho output AI.
+- Thêm traceability giữa user stories, schema và file code đầu ra.
+- Thêm nhiều stack backend hơn.
+- Tạo chế độ preview project output chi tiết hơn trước khi export ZIP.
+
+## Tài liệu đi kèm
+
+- Báo cáo markdown: [docs/Vibe-Architect-Midterm-Report.md](docs/Vibe-Architect-Midterm-Report.md)
+- Kịch bản demo: [docs/demo-script-7-minutes.html](docs/demo-script-7-minutes.html)
+
+## Đề xuất khi đẩy GitHub
+
+Nên đưa lên GitHub:
+
+- `backend/`
+- `frontend/`
+- `docs/` (trừ file nặng hoặc file sinh tự động không cần thiết)
+- `scripts/`
+- `README.md`
+- `package.json`
+- `package-lock.json`
+- `.gitignore`
+- `LICENSE`
+
+Không nên public:
+
+- `.env`
+- `.cache/`
+- `downloads/`
+- API keys hoặc bất kỳ secret nào
+- file ZIP export sinh ra trong quá trình chạy
+
+Nếu repo dùng cho nộp bài học phần, có thể giữ thêm các file báo cáo `.docx` hoặc `.html` nếu giảng viên yêu cầu. Nếu repo dùng public portfolio, nên ưu tiên giữ bản Markdown/PDF sạch và loại bớt file nặng trùng lặp.
