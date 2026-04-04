@@ -1,6 +1,4 @@
 node_modules/
 .env
 .cache/
-downloads/
-*.zip
 .DS_Store
